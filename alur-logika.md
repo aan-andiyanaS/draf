@@ -21,7 +21,7 @@
    flowchart TD
       Start([Mulai: Nyalakan Perangkat IoT])
       ActivateBLE[IoT: BLE Aktif - Advertising]
-      UserPrep[/User: Nyalakan BT, Hotspot & Buka App/]
+      UserPrep[/Pendamping: Nyalakan BT, Hotspot & Buka App/]
       ScanPilih[App: Scan BLE → User Pilih Perangkat]
       ConnBLE[App ↔ IoT: Terkoneksi via BLE]
       ProvWiFi[IoT: Scan WiFi → App Tampilkan Daftar → User Pilih Hotspot]
@@ -52,10 +52,10 @@
 
    1. **Nyalakan Perangkat IoT** — User menekan tombol power pada perangkat wearable (head unit). ESP32-S3 melakukan boot dan menginisialisasi semua modul hardware.
    2. **BLE Aktif (Advertising)** — Setelah boot, ESP32 langsung mengaktifkan BLE dalam mode *advertising*, artinya perangkat mengirimkan sinyal agar bisa ditemukan oleh smartphone di sekitarnya.
-   3. **Aksi User di Smartphone** — User perlu menyalakan Bluetooth dan Hotspot WiFi pada smartphone, lalu membuka aplikasi Android yang sudah terinstall.
-   4. **Scan BLE & Pilih Perangkat** — Aplikasi menampilkan daftar perangkat BLE yang terdeteksi di sekitar. User memilih perangkat IoT dari daftar tersebut.
+   3. **Aksi Pendamping di Smartphone** — Pada setup pertama, langkah ini dilakukan oleh **pendamping** (*sighted companion*) karena memerlukan interaksi visual dengan layar smartphone. Pendamping menyalakan Bluetooth dan Hotspot WiFi pada smartphone, lalu membuka aplikasi Android yang sudah terinstall.
+   4. **Scan BLE & Pilih Perangkat** — Aplikasi menampilkan daftar perangkat BLE yang terdeteksi. **Pendamping** memilih perangkat IoT dari daftar tersebut.
    5. **Terkoneksi via BLE** — Smartphone dan perangkat IoT membentuk koneksi BLE dua arah. Koneksi ini digunakan hanya untuk proses provisioning (bukan untuk transfer data utama).
-   6. **Provisioning WiFi** — Perangkat IoT melakukan scanning jaringan WiFi di sekitarnya, lalu mengirimkan hasilnya ke aplikasi via BLE. User memilih jaringan WiFi yang sesuai (biasanya Hotspot smartphone itu sendiri).
+   6. **Provisioning WiFi** — Perangkat IoT melakukan scanning jaringan WiFi di sekitarnya, lalu mengirimkan hasilnya ke aplikasi via BLE. **Pendamping** memilih jaringan WiFi yang sesuai (biasanya Hotspot smartphone itu sendiri). Setelah provisioning berhasil, pendamping tidak lagi dibutuhkan — sistem auto-connect di sesi berikutnya.
    7. **Kirim Kredensial & Koneksi** — Aplikasi mengirimkan SSID dan password WiFi yang dipilih ke perangkat IoT. IoT kemudian mencoba terhubung ke jaringan WiFi tersebut.
    8. **Cek Koneksi** — Jika koneksi WiFi berhasil, lanjut ke langkah berikutnya. Jika gagal, kembali ke proses provisioning WiFi untuk mencoba jaringan lain.
    9. **Simpan & Aktifkan** — Kredensial WiFi yang berhasil disimpan ke memori NVS (Non-Volatile Storage) agar perangkat dapat auto-connect di sesi berikutnya tanpa provisioning ulang. Sistem dinyatakan aktif dan siap masuk ke algoritma penentuan mode.
