@@ -62,6 +62,154 @@
 
    ---
 
+   ## Flowchart Gabungan: Keseluruhan Sistem Setelah Provisioning
+
+   Flowchart berikut menampilkan **keseluruhan alur kerja sistem** setelah provisioning selesai, mencakup penentuan mode (3.5.2), pemrosesan cerdas/Smart Mode (3.5.3), dan mode darurat/fail-safe (3.5.4) dalam satu gambar besar.
+
+   ```mermaid
+   flowchart TD
+      %% ════ 3.5.2: PENENTUAN MODE OPERASI ════
+      START([Mulai: Sistem Aktif]) --> INIT[Inisialisasi Hardware:<br/>ESP32, Kamera, VL53L5CX]
+      INIT --> CEK_WIFI{Cek Koneksi WiFi?}
+
+      CEK_WIFI -- Putus > 5 Detik --> MODE_SAFETY[MODE SAFETY / OFFLINE]
+      CEK_WIFI -- Terhubung --> CEK_CAHAYA{Cek Kecerahan?}
+
+      CEK_CAHAYA -- Gelap --> MODE_LOW[MODE LOW-LIGHT]
+      CEK_CAHAYA -- Terang --> MODE_SMART([Mode Smart / AI])
+
+      %% ════ 3.5.4: MODE DARURAT — OFFLINE ════
+      MODE_SAFETY --> CAM_OFF[Matikan Kamera]
+      MODE_SAFETY --> BACA_SENSOR[Baca Sensor Jarak VL53L5CX]
+
+      BACA_SENSOR --> LOGIKA_BUZZER{Jarak < 1 Meter?}
+      LOGIKA_BUZZER -- Ya --> BUZZ_ON[Bunyikan Buzzer]
+      LOGIKA_BUZZER -- Tidak --> BUZZ_OFF[Buzzer Diam]
+      BUZZ_ON --> RETRY[Coba Reconnect WiFi]
+      BUZZ_OFF --> RETRY
+      RETRY --> CEK_ULANG{Reconnect Berhasil?}
+      CEK_ULANG -- Ya --> CEK_CAHAYA
+      CEK_ULANG -- Tidak --> BACA_SENSOR
+
+      %% ════ 3.5.4: MODE DARURAT — GELAP ════
+      MODE_LOW --> CAM_LOW[Kamera Low FPS]
+      MODE_LOW --> STOP_STREAM[Stop Video Streaming]
+      MODE_LOW --> BACA_SENSOR
+
+      %% ════ 3.5.3 FLOWCHART 3a: PEMROSESAN DATA & MAPPING ════
+      MODE_SMART --> CEK_GERAK{Accelerometer:<br/>User Bergerak?}
+
+      CEK_GERAK -- Diam > 10 Detik --> PAUSE_YOLO[Pause YOLO & Streaming]
+      PAUSE_YOLO --> SENSOR_ONLY[Sensor VL53L5CX Tetap Aktif + Buzzer]
+      SENSOR_ONLY -- User Bergerak Lagi --> CEK_GERAK
+
+      CEK_GERAK -- Ya --> KIRIM_DATA[Kirim Video + Data Jarak ke HP]
+
+      KIRIM_DATA --> YOLO[Proses Citra AI YOLOv11]
+      KIRIM_DATA --> ToF[Proses Matriks Jarak VL53L5CX]
+
+      YOLO --> MAPPING{Logika Mapping<br/>Arah Jam 10-2}
+      ToF --> MAPPING
+
+      MAPPING -- X < 20% / X > 80% --> LUAR[Set: Arah Jam 10 atau 2<br/>Status: Jarak Unknown]
+      MAPPING -- X = 20% - 80% --> DALAM[Set: Arah Jam 11, 12, atau 1]
+      DALAM --> HITUNG_GRID[Hitung Grid Pixel/60<br/>Ambil Data Array Jarak]
+
+      %% ════ 3.5.3 FLOWCHART 3b: PERCABANGAN MODE APLIKASI ════
+      LUAR --> CEK_MODE{Cek Mode Aplikasi?}
+      HITUNG_GRID --> CEK_MODE
+
+      CEK_MODE -- Mode Tanya Jawab --> TTS_INFO[Suara Info:<br/>Objek + Arah + Jarak]
+
+      CEK_MODE -- Mode Otonom --> PARALEL[Proses Paralel:<br/>Deteksi Objek + Deteksi Medan]
+
+      PARALEL --> CEK_JANGKAUAN{Objek dalam<br/>Jangkauan ToF?<br/>≤ 4 Meter}
+      PARALEL --> CEK_BAWAH[Baca ToF Baris 7-8<br/>Bandingkan dengan Baris 4-5]
+
+      %% ════ 3.5.3 FLOWCHART 3c: JALUR A — DETEKSI OBJEK DEKAT ════
+      CEK_JANGKAUAN -- Ya: ≤ 4m --> DELTA_TOF[Hitung Delta Jarak ToF:<br/>ΔJarak = Jarak Lama − Jarak Baru]
+      DELTA_TOF --> CEK_ACCEL{Cek Accelerometer<br/>Smartphone}
+
+      CEK_ACCEL -- User Bergerak --> SPEED_U[Kecepatan Pendekatan =<br/>ΔJarak / Waktu Antar Frame]
+      CEK_ACCEL -- User Diam +<br/>ΔJarak Positif --> SPEED_O[Kecepatan Objek =<br/>ΔJarak / Waktu Antar Frame]
+      CEK_ACCEL -- User Diam +<br/>ΔJarak = 0 --> CEK_STATIS{Jarak < 1m?}
+
+      SPEED_U --> TH_U[Threshold Adaptif =<br/>1m + Kecepatan × 2 detik<br/>Max: 4m]
+      SPEED_O --> TH_O[Threshold Adaptif =<br/>1m + Kecepatan × 2 detik<br/>Max: 4m]
+
+      TH_U --> F_U{Jarak < Threshold?}
+      TH_O --> F_O{Jarak < Threshold?}
+
+      F_U -- Ya --> TTS_WARN[Suara: AWAS<br/>Objek + Jam X + Jarak]
+      F_U -- Tidak --> SILENT[Diam / Tidak Ada Suara]
+
+      F_O -- Ya --> TTS_OBJ[Suara: AWAS Objek<br/>Mendekat + Jam X + Jarak]
+      F_O -- Tidak --> SILENT
+
+      CEK_STATIS -- Ya + Belum Pernah<br/>Diperingatkan --> TTS_STATIS[Suara: Objek Dekat<br/>di Jam X, Jarak Y]
+      CEK_STATIS -- Tidak / Sudah<br/>Diperingatkan --> SILENT
+
+      %% ════ 3.5.3 FLOWCHART 3d: JALUR B — DETEKSI KENDARAAN JAUH ════
+      CEK_JANGKAUAN -- Tidak: > 4m --> BBOX[Hitung Delta Bounding Box:<br/>ΔBBox = BBox Baru − BBox Lama]
+      BBOX --> CEK_BBOX{BBox Membesar<br/>Signifikan?<br/>Area +20% Antar Frame}
+      CEK_BBOX -- Ya: Objek Mendekat --> TTS_FAR[Suara: AWAS<br/>Kendaraan Mendekat<br/>dari Arah Jam X]
+      CEK_BBOX -- Tidak: Stabil/Mengecil --> SILENT
+
+      %% ════ 3.5.3 FLOWCHART 3e: JALUR C — DETEKSI MEDAN ════
+      CEK_BAWAH --> CEK_ANOMALI{Anomali Medan?<br/>Rasio Bawah/Tengah<br/>> 0.8}
+      CEK_ANOMALI -- Tidak: Normal --> MEDAN_AMAN[Medan Datar: Aman]
+      CEK_ANOMALI -- Ya: Anomali --> ANALISIS[Analisis Pola<br/>Seluruh Matriks 8×8]
+      ANALISIS --> CEK_POLA{Pola Jarak<br/>Antar Baris?}
+      CEK_POLA -- Gradual Naik +<br/>Merata Semua Kolom --> CEK_YOLO_T{YOLO Deteksi<br/>Tangga?}
+      CEK_POLA -- Tiba-tiba Besar<br/>di Zona Tertentu --> TTS_LUBANG[Suara: AWAS<br/>Lubang di Depan!]
+      CEK_YOLO_T -- Ya --> TTS_TANGGA[Suara: Tangga<br/>di Depan]
+      CEK_YOLO_T -- Tidak --> TTS_DROP[Suara: AWAS<br/>Penurunan di Depan!]
+
+      %% ════ AKHIR SIKLUS ════
+      TTS_INFO --> SIMPAN((Simpan Data<br/>Frame))
+      TTS_WARN --> SIMPAN
+      TTS_OBJ --> SIMPAN
+      TTS_STATIS --> SIMPAN
+      TTS_FAR --> SIMPAN
+      TTS_TANGGA --> SIMPAN
+      TTS_DROP --> SIMPAN
+      TTS_LUBANG --> SIMPAN
+      SILENT --> SIMPAN
+      MEDAN_AMAN --> SIMPAN
+      SIMPAN --> CEK_WIFI
+
+      %% Styling
+      classDef impl fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+      classDef decision fill:#fce4ec,stroke:#c62828,stroke-width:2px;
+      classDef adaptive fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+      classDef yolo fill:#fff9c4,stroke:#f57f17,stroke-width:2px;
+      classDef terrain fill:#e0f2f1,stroke:#00695c,stroke-width:2px;
+      classDef design fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
+      classDef research fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+      classDef safety fill:#ffebee,stroke:#b71c1c,stroke-width:2px;
+
+      class TTS_INFO,TTS_WARN,TTS_OBJ,TTS_STATIS,TTS_FAR,TTS_TANGGA,TTS_DROP,TTS_LUBANG,SILENT,BUZZ_ON,BUZZ_OFF impl;
+      class CEK_WIFI,CEK_CAHAYA,CEK_GERAK,MAPPING,CEK_MODE,CEK_JANGKAUAN,CEK_ACCEL,F_U,F_O,CEK_STATIS,CEK_BBOX,CEK_ANOMALI,CEK_POLA,CEK_YOLO_T,LOGIKA_BUZZER,CEK_ULANG decision;
+      class DELTA_TOF,SPEED_U,SPEED_O,TH_U,TH_O adaptive;
+      class BBOX yolo;
+      class CEK_BAWAH,ANALISIS,MEDAN_AMAN terrain;
+      class PARALEL,SIMPAN,LUAR,DALAM,HITUNG_GRID,PAUSE_YOLO,SENSOR_ONLY,INIT design;
+      class BACA_SENSOR,CAM_OFF,CAM_LOW,STOP_STREAM research;
+      class MODE_SAFETY,MODE_LOW,RETRY safety;
+   ```
+
+   Flowchart di atas menampilkan **keseluruhan sistem dalam satu gambar**. Karena terlalu besar untuk dicetak pada A4
+
+, sistem dipecah menjadi **bagian-bagian yang lebih kecil** pada sub-bab berikut:
+
+   | Sub-bab | Bagian | Area pada Gambar Besar |
+   |---|---|---|
+   | **3.5.2** | Penentuan Mode Operasi | Bagian paling atas (Sistem Aktif → 3 mode) |
+   | **3.5.3** | Smart Mode (Flowchart 3a–3e) | Bagian tengah dan bawah |
+   | **3.5.4** | Mode Darurat (Offline & Gelap) | Cabang kiri atas |
+
+   ---
+
    ## 3.5.2. Algoritma Penentuan Mode Operasi
 
    Algoritma ini menentukan mode operasi perangkat setelah provisioning selesai. Pengecekan dilakukan secara berurutan: **koneksi WiFi** terlebih dahulu, kemudian **kondisi cahaya**. Hasil percabangan mengarahkan sistem ke salah satu dari tiga mode operasi.
@@ -108,68 +256,87 @@
 
    ```mermaid
    flowchart TD
-      %% ════ FLOWCHART 3a: PEMROSESAN DATA ════
+      %% ════ FLOWCHART 3a: PEMROSESAN DATA & MAPPING ════
       MODE_SMART([Mode Smart / AI]) --> CEK_GERAK{Accelerometer:<br/>User Bergerak?}
 
       CEK_GERAK -- Diam > 10 Detik --> PAUSE_YOLO[Pause YOLO & Streaming]
-      PAUSE_YOLO --> SENSOR_ONLY[VL53L5CX Tetap Aktif + Buzzer]
+      PAUSE_YOLO --> SENSOR_ONLY[Sensor VL53L5CX Tetap Aktif + Buzzer]
       SENSOR_ONLY -- User Bergerak Lagi --> CEK_GERAK
 
       CEK_GERAK -- Ya --> KIRIM_DATA[Kirim Video + Data Jarak ke HP]
 
-      KIRIM_DATA --> YOLO[Proses YOLO AI]
-      KIRIM_DATA --> ToF[Proses Matriks ToF]
+      KIRIM_DATA --> YOLO[Proses Citra AI YOLOv11]
+      KIRIM_DATA --> ToF[Proses Matriks Jarak VL53L5CX]
 
-      YOLO --> MAPPING{Mapping Arah Jam 10-2}
+      YOLO --> MAPPING{Logika Mapping<br/>Arah Jam 10-2}
       ToF --> MAPPING
 
-      MAPPING --> HASIL[Data: Objek + Arah + Jarak]
+      MAPPING -- X < 20% / X > 80% --> LUAR[Set: Arah Jam 10 atau 2<br/>Status: Jarak Unknown]
+      MAPPING -- X = 20% - 80% --> DALAM[Set: Arah Jam 11, 12, atau 1]
+      DALAM --> HITUNG_GRID[Hitung Grid Pixel/60<br/>Ambil Data Array Jarak]
 
-      %% ════ FLOWCHART 3b: PERCABANGAN MODE ════
-      HASIL --> CEK_MODE{Mode Aplikasi?}
+      %% ════ FLOWCHART 3b: PERCABANGAN MODE APLIKASI ════
+      LUAR --> CEK_MODE{Cek Mode Aplikasi?}
+      HITUNG_GRID --> CEK_MODE
 
-      CEK_MODE -- Mode Tanya Jawab --> TTS_INFO[Suara: Objek + Arah + Jarak]
+      CEK_MODE -- Mode Tanya Jawab --> TTS_INFO[Suara Info:<br/>Objek + Arah + Jarak]
 
-      CEK_MODE -- Mode Otonom --> PARALEL[Proses Paralel]
+      CEK_MODE -- Mode Otonom --> PARALEL[Proses Paralel:<br/>Deteksi Objek + Deteksi Medan]
 
-      PARALEL --> CEK_JANGKAUAN{Jangkauan ToF?}
-      PARALEL --> CEK_BAWAH[Cek ToF Baris Bawah]
+      PARALEL --> CEK_JANGKAUAN{Objek dalam<br/>Jangkauan ToF?<br/>≤ 4 Meter}
+      PARALEL --> CEK_BAWAH[Baca ToF Baris 7-8<br/>Bandingkan dengan Baris 4-5]
 
-      %% ════ FLOWCHART 3c: JALUR A ════
-      CEK_JANGKAUAN -- ≤ 4m --> DELTA_TOF[Hitung ΔJarak ToF]
-      DELTA_TOF --> CEK_ACCEL{Accelerometer?}
-      CEK_ACCEL --> SPEED[Hitung Kecepatan]
-      SPEED --> THRESHOLD[Threshold Adaptif:<br/>1m + Kecepatan × 2s]
-      THRESHOLD --> F_CEK{Jarak < Threshold?}
-      F_CEK -- Ya --> TTS_WARN[AWAS: Objek + Jam + Jarak]
-      F_CEK -- Tidak --> SILENT[Diam]
+      %% ════ FLOWCHART 3c: JALUR A — DETEKSI OBJEK DEKAT ════
+      CEK_JANGKAUAN -- Ya: ≤ 4m --> DELTA_TOF[Hitung Delta Jarak ToF:<br/>ΔJarak = Jarak Lama − Jarak Baru]
+      DELTA_TOF --> CEK_ACCEL{Cek Accelerometer<br/>Smartphone}
 
-      %% ════ FLOWCHART 3d: JALUR B ════
-      CEK_JANGKAUAN -- > 4m --> BBOX[Hitung ΔBounding Box]
-      BBOX --> CEK_BBOX{BBox Membesar?}
-      CEK_BBOX -- Ya --> TTS_FAR[AWAS: Kendaraan Mendekat]
-      CEK_BBOX -- Tidak --> SILENT
+      CEK_ACCEL -- User Bergerak --> SPEED_U[Kecepatan Pendekatan =<br/>ΔJarak / Waktu Antar Frame]
+      CEK_ACCEL -- User Diam +<br/>ΔJarak Positif --> SPEED_O[Kecepatan Objek =<br/>ΔJarak / Waktu Antar Frame]
+      CEK_ACCEL -- User Diam +<br/>ΔJarak = 0 --> CEK_STATIS{Jarak < 1m?}
 
-      %% ════ FLOWCHART 3e: JALUR C ════
-      CEK_BAWAH --> CEK_ANOMALI{Anomali Medan?}
-      CEK_ANOMALI -- Normal --> MEDAN_AMAN[Aman]
-      CEK_ANOMALI -- Anomali --> ANALISIS[Analisis Matriks 8×8]
-      ANALISIS --> CEK_POLA{Pola?}
-      CEK_POLA -- Gradual + Merata --> CEK_YOLO_T{YOLO: Tangga?}
-      CEK_POLA -- Lokal --> TTS_LUBANG[AWAS: Lubang!]
-      CEK_YOLO_T -- Ya --> TTS_TANGGA[Tangga di Depan]
-      CEK_YOLO_T -- Tidak --> TTS_DROP[AWAS: Penurunan!]
+      SPEED_U --> TH_U[Threshold Adaptif =<br/>1m + Kecepatan × 2 detik<br/>Max: 4m]
+      SPEED_O --> TH_O[Threshold Adaptif =<br/>1m + Kecepatan × 2 detik<br/>Max: 4m]
+
+      TH_U --> F_U{Jarak < Threshold?}
+      TH_O --> F_O{Jarak < Threshold?}
+
+      F_U -- Ya --> TTS_WARN[Suara: AWAS<br/>Objek + Jam X + Jarak]
+      F_U -- Tidak --> SILENT[Diam / Tidak Ada Suara]
+
+      F_O -- Ya --> TTS_OBJ[Suara: AWAS Objek<br/>Mendekat + Jam X + Jarak]
+      F_O -- Tidak --> SILENT
+
+      CEK_STATIS -- Ya + Belum Pernah<br/>Diperingatkan --> TTS_STATIS[Suara: Objek Dekat<br/>di Jam X, Jarak Y]
+      CEK_STATIS -- Tidak / Sudah<br/>Diperingatkan --> SILENT
+
+      %% ════ FLOWCHART 3d: JALUR B — DETEKSI KENDARAAN JAUH ════
+      CEK_JANGKAUAN -- Tidak: > 4m --> BBOX[Hitung Delta Bounding Box:<br/>ΔBBox = BBox Baru − BBox Lama]
+      BBOX --> CEK_BBOX{BBox Membesar<br/>Signifikan?<br/>Area +20% Antar Frame}
+      CEK_BBOX -- Ya: Objek Mendekat --> TTS_FAR[Suara: AWAS<br/>Kendaraan Mendekat<br/>dari Arah Jam X]
+      CEK_BBOX -- Tidak: Stabil/Mengecil --> SILENT
+
+      %% ════ FLOWCHART 3e: JALUR C — DETEKSI MEDAN ════
+      CEK_BAWAH --> CEK_ANOMALI{Anomali Medan?<br/>Rasio Bawah/Tengah<br/>> 0.8}
+      CEK_ANOMALI -- Tidak: Normal --> MEDAN_AMAN[Medan Datar: Aman]
+      CEK_ANOMALI -- Ya: Anomali --> ANALISIS[Analisis Pola<br/>Seluruh Matriks 8×8]
+      ANALISIS --> CEK_POLA{Pola Jarak<br/>Antar Baris?}
+      CEK_POLA -- Gradual Naik +<br/>Merata Semua Kolom --> CEK_YOLO_T{YOLO Deteksi<br/>Tangga?}
+      CEK_POLA -- Tiba-tiba Besar<br/>di Zona Tertentu --> TTS_LUBANG[Suara: AWAS<br/>Lubang di Depan!]
+      CEK_YOLO_T -- Ya --> TTS_TANGGA[Suara: Tangga<br/>di Depan]
+      CEK_YOLO_T -- Tidak --> TTS_DROP[Suara: AWAS<br/>Penurunan di Depan!]
 
       %% ════ AKHIR SIKLUS ════
-      TTS_INFO --> SIMPAN((Simpan Data))
+      TTS_INFO --> SIMPAN((Simpan Data<br/>Frame))
       TTS_WARN --> SIMPAN
+      TTS_OBJ --> SIMPAN
+      TTS_STATIS --> SIMPAN
       TTS_FAR --> SIMPAN
       TTS_TANGGA --> SIMPAN
       TTS_DROP --> SIMPAN
       TTS_LUBANG --> SIMPAN
       SILENT --> SIMPAN
       MEDAN_AMAN --> SIMPAN
-      SIMPAN --> KEMBALI([Kembali ke 3.5.2])
+      SIMPAN --> KEMBALI([Kembali ke 3.5.2:<br/>Cek WiFi])
 
       %% Styling
       classDef impl fill:#fff3e0,stroke:#e65100,stroke-width:2px;
@@ -179,12 +346,12 @@
       classDef terrain fill:#e0f2f1,stroke:#00695c,stroke-width:2px;
       classDef design fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
 
-      class TTS_INFO,TTS_WARN,TTS_FAR,TTS_TANGGA,TTS_DROP,TTS_LUBANG,SILENT impl;
-      class CEK_GERAK,MAPPING,CEK_MODE,CEK_JANGKAUAN,CEK_ACCEL,F_CEK,CEK_BBOX,CEK_ANOMALI,CEK_POLA,CEK_YOLO_T decision;
-      class DELTA_TOF,SPEED,THRESHOLD adaptive;
+      class TTS_INFO,TTS_WARN,TTS_OBJ,TTS_STATIS,TTS_FAR,TTS_TANGGA,TTS_DROP,TTS_LUBANG,SILENT impl;
+      class CEK_GERAK,MAPPING,CEK_MODE,CEK_JANGKAUAN,CEK_ACCEL,F_U,F_O,CEK_STATIS,CEK_BBOX,CEK_ANOMALI,CEK_POLA,CEK_YOLO_T decision;
+      class DELTA_TOF,SPEED_U,SPEED_O,TH_U,TH_O adaptive;
       class BBOX yolo;
       class CEK_BAWAH,ANALISIS,MEDAN_AMAN terrain;
-      class PARALEL,SIMPAN design;
+      class PARALEL,SIMPAN,LUAR,DALAM,HITUNG_GRID,PAUSE_YOLO,SENSOR_ONLY design;
    ```
 
    Flowchart di atas menampilkan keseluruhan alur secara ringkas. Karena ukurannya terlalu besar untuk dicetak pada kertas A4 dengan detail yang jelas, algoritma ini **dipecah menjadi 5 flowchart** yang lebih detail:
@@ -324,6 +491,7 @@
 
       CEK_ACCEL -- User Bergerak --> SPEED_U[Kecepatan Pendekatan =<br/>ΔJarak / Waktu Antar Frame]
       CEK_ACCEL -- User Diam +<br/>ΔJarak Positif --> SPEED_O[Kecepatan Objek =<br/>ΔJarak / Waktu Antar Frame]
+      CEK_ACCEL -- User Diam +<br/>ΔJarak = 0 --> CEK_STATIS{Jarak < 1m?}
 
       SPEED_U --> TH_U[Threshold Adaptif =<br/>1m + Kecepatan × 2 detik<br/>Max: 4m]
       SPEED_O --> TH_O[Threshold Adaptif =<br/>1m + Kecepatan × 2 detik<br/>Max: 4m]
@@ -337,8 +505,12 @@
       F_O -- Ya --> TTS_OBJ[Suara: AWAS Objek<br/>Mendekat + Jam X + Jarak]
       F_O -- Tidak --> SILENT
 
+      CEK_STATIS -- Ya + Belum Pernah<br/>Diperingatkan --> TTS_STATIS[Suara: Objek Dekat<br/>di Jam X, Jarak Y]
+      CEK_STATIS -- Tidak / Sudah<br/>Diperingatkan --> SILENT
+
       TTS_WARN --> KEMBALI([Kembali ke<br/>Flowchart 3b: Simpan Data])
       TTS_OBJ --> KEMBALI
+      TTS_STATIS --> KEMBALI
       SILENT --> KEMBALI
 
       %% Styling
@@ -346,20 +518,22 @@
       classDef decision fill:#fce4ec,stroke:#c62828,stroke-width:2px;
       classDef adaptive fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
 
-      class TTS_WARN,TTS_OBJ,SILENT impl;
-      class CEK_ACCEL,F_U,F_O decision;
+      class TTS_WARN,TTS_OBJ,TTS_STATIS,SILENT impl;
+      class CEK_ACCEL,F_U,F_O,CEK_STATIS decision;
       class DELTA_TOF,SPEED_U,SPEED_O,TH_U,TH_O adaptive;
    ```
 
    **Penjelasan langkah demi langkah:**
 
    1. **Hitung Delta Jarak** — Menghitung selisih jarak objek antara frame sekarang dan frame sebelumnya: `ΔJarak = Jarak Lama − Jarak Baru`. Jika positif, objek mendekat.
-   2. **Cek Accelerometer Smartphone** — Menentukan siapa yang bergerak:
+   2. **Cek Accelerometer Smartphone** — Menentukan siapa yang bergerak, dengan tiga kemungkinan:
       - **User bergerak**: User berjalan mendekati objek statis (misalnya tiang, tembok).
       - **User diam + ΔJarak positif**: Objek bergerak mendekati user yang diam (misalnya kendaraan).
+      - **User diam + ΔJarak = 0**: Baik user maupun objek tidak bergerak (misalnya user berdiri di dekat tiang). Cek apakah jarak < 1 meter.
    3. **Hitung Kecepatan Pendekatan** — `Kecepatan = ΔJarak / Waktu Antar Frame` (dalam m/s). Sumber data: sensor jarak ToF VL53L5CX.
    4. **Threshold Adaptif** — `Threshold = 1m + (Kecepatan × 2 detik)`, dengan batas maksimum 4 meter (jangkauan sensor). Contoh: user jalan 1 m/s → threshold 3 meter; objek & user diam → threshold tetap 1 meter.
    5. **Filter & Output** — Jika jarak saat ini kurang dari threshold → keluarkan peringatan TTS dengan info lengkap (nama objek, arah jam, jarak). Jika tidak → diam.
+   6. **Peringatan Objek Statis** — Jika user dan objek sama-sama diam, dan jarak < 1 meter, sistem memberikan peringatan **satu kali** (tidak diulang-ulang). Peringatan akan di-reset jika user bergerak atau objek berubah posisi. Hal ini mencegah spam suara saat user sengaja berdiri di dekat objek.
 
    ---
 
