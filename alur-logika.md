@@ -67,6 +67,10 @@
    Flowchart berikut menampilkan **keseluruhan alur kerja sistem** setelah provisioning selesai, mencakup penentuan mode (3.5.2), pemrosesan cerdas/Smart Mode (3.5.3), dan mode darurat/fail-safe (3.5.4) dalam satu gambar besar.
 
    ```mermaid
+   ---
+   config:
+   layout: elk
+   ---
    flowchart TD
       %% ════ 3.5.2: PENENTUAN MODE OPERASI ════
       START([Mulai: Sistem Aktif]) --> INIT[Inisialisasi Hardware:<br/>ESP32, Kamera, VL53L5CX]
