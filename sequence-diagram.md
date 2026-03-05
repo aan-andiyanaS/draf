@@ -352,9 +352,9 @@ Diagram di atas cukup besar. Berikut dipecah menjadi dua bagian:
 
 ---
 
-### SD-3a. Deteksi Objek (Jalur A + Jalur B)
+### SD-3a. Deteksi Objek Dekat — Jalur A (Threshold Adaptif, ≤ 4m)
 
-Fokus pada **deteksi objek** dengan threshold adaptif (≤ 4m) dan delta bounding box (> 4m).
+Fokus pada **deteksi objek dalam jangkauan sensor ToF** (≤ 4 meter). Threshold peringatan bersifat **adaptif** berdasarkan kecepatan pendekatan.
 
 ```mermaid
 sequenceDiagram
@@ -363,49 +363,38 @@ sequenceDiagram
     participant TN as Tunanetra
 
     Note over App: Data Hasil Mapping dari SD-2 (Mode Otonom)
+    Note over App: Objek Terdeteksi dalam Jangkauan ToF (≤ 4m)
+
     App->>App: Hitung ΔJarak (Jarak Lama − Jarak Baru)
     App->>App: Baca Accelerometer
 
-    alt Objek ≤ 4m — JALUR A: Threshold Adaptif
-        alt User Bergerak
-            App->>App: Kecepatan User = ΔJarak / Waktu Antar Frame
-            App->>App: Threshold = 1m + Kecepatan × 2s (Max 4m)
-            alt Jarak < Threshold
-                App->>TTS: "AWAS, [Objek] di Jam [X], [Jarak]m"
-                TTS-->>TN: Audio Peringatan
-                TTS-->>App: Callback: Audio Selesai
-            else Jarak ≥ Threshold
-                Note over App: Aman — Tidak Ada Suara
-            end
-
-        else User Diam + ΔJarak Positif (Objek Mendekat)
-            App->>App: Kecepatan Objek = ΔJarak / Waktu Antar Frame
-            App->>App: Threshold = 1m + Kecepatan × 2s (Max 4m)
-            alt Jarak < Threshold
-                App->>TTS: "AWAS, Objek Mendekat dari Jam [X], [Jarak]m"
-                TTS-->>TN: Audio Peringatan
-                TTS-->>App: Callback: Audio Selesai
-            end
-
-        else User Diam + ΔJarak = 0 (Kedua Statis)
-            alt Jarak < 1m + Belum Diperingatkan
-                App->>TTS: "Objek Dekat di Jam [X], [Jarak]m"
-                TTS-->>TN: Audio (Sekali, Tidak Diulang)
-                App->>App: Tandai Objek: Sudah Diperingatkan
-            else Jarak ≥ 1m atau Sudah Diperingatkan
-                Note over App: Aman — Tidak Ada Suara
-            end
-        end
-
-    else Objek > 4m — JALUR B: Delta Bounding Box
-        App->>App: Hitung ΔBBox (BBox Baru − BBox Lama)
-        alt Area BBox Membesar > 20% Antar Frame
-            App->>TTS: "AWAS, Kendaraan Mendekat dari Jam [X]"
-            Note over TTS: Tanpa Info Jarak (ToF Tidak Menjangkau)
+    alt User Bergerak (Accelerometer Aktif)
+        App->>App: Kecepatan User = ΔJarak / Waktu Antar Frame
+        App->>App: Threshold = 1m + Kecepatan × 2s (Max 4m)
+        alt Jarak < Threshold
+            App->>TTS: "AWAS, [Objek] di Jam [X], [Jarak]m"
             TTS-->>TN: Audio Peringatan
             TTS-->>App: Callback: Audio Selesai
-        else BBox Stabil / Mengecil
-            Note over App: Objek Diam atau Menjauh — Tidak Ada Suara
+        else Jarak ≥ Threshold
+            Note over App: Aman — Tidak Ada Suara
+        end
+
+    else User Diam + ΔJarak Positif (Objek Mendekat)
+        App->>App: Kecepatan Objek = ΔJarak / Waktu Antar Frame
+        App->>App: Threshold = 1m + Kecepatan × 2s (Max 4m)
+        alt Jarak < Threshold
+            App->>TTS: "AWAS, Objek Mendekat dari Jam [X], [Jarak]m"
+            TTS-->>TN: Audio Peringatan
+            TTS-->>App: Callback: Audio Selesai
+        end
+
+    else User Diam + ΔJarak = 0 (Kedua Statis)
+        alt Jarak < 1m + Belum Diperingatkan
+            App->>TTS: "Objek Dekat di Jam [X], [Jarak]m"
+            TTS-->>TN: Audio (Sekali, Tidak Diulang)
+            App->>App: Tandai Objek: Sudah Diperingatkan
+        else Jarak ≥ 1m atau Sudah Diperingatkan
+            Note over App: Aman — Tidak Ada Suara
         end
     end
 ```
@@ -413,19 +402,63 @@ sequenceDiagram
 **Penjelasan komunikasi antar aktor:**
 
 1. **App → App** (Internal — Tiga Cabang Accelerometer):
-   - **User bergerak**: User mendekati objek statis. Kecepatan pendekatan dihitung dari delta jarak ToF. Threshold adaptif: `1m + (Kecepatan × 2 detik)`, maksimum 4m. Contoh: user berjalan 1 m/s → threshold 3m.
-   - **User diam + objek mendekat (ΔJarak positif)**: Objek bergerak mendekati user (misalnya kendaraan). Threshold adaptif berdasarkan kecepatan objek.
+   - **User bergerak**: User mendekati objek statis. Kecepatan pendekatan dihitung dari delta jarak ToF antar frame. Threshold adaptif: `1m + (Kecepatan × 2 detik)`, maksimum 4m. Contoh: user berjalan 1 m/s → threshold 3m.
+   - **User diam + objek mendekat (ΔJarak positif)**: Objek bergerak mendekati user (misalnya kendaraan lambat). Threshold adaptif berdasarkan kecepatan objek — formula sama.
    - **User diam + objek diam (ΔJarak = 0)**: Kedua statis. Jika jarak < 1m, peringatan diberikan **satu kali saja**. Aplikasi menandai objek tersebut agar tidak diulang. Tanda di-reset saat user bergerak atau objek berubah posisi.
-2. **App → App** (Internal — Jalur B): Untuk objek di luar jangkauan ToF (> 4m), hanya bisa mendeteksi pendekatan via perubahan ukuran bounding box YOLO. Peringatan **tanpa info jarak** karena ToF tidak menjangkau. Saat objek masuk jangkauan ≤ 4m, sistem otomatis beralih ke Jalur A.
-3. **App → TTS → Tunanetra** (Output Suara): Setiap pesan dikirim ke modul TTS Android sebagai string teks. TTS mengkonversi ke audio dan memutarnya. Setelah selesai, TTS mengirim **callback** ke aplikasi — aplikasi menunggu callback ini sebelum mengirim pesan TTS berikutnya, sehingga **tidak terjadi tumpang tindih suara**.
+2. **App → TTS → Tunanetra** (Output Suara): Setiap pesan dikirim ke modul TTS Android sebagai string teks. TTS mengkonversi ke audio dan memutarnya. Setelah selesai, TTS mengirim **callback** ke aplikasi — aplikasi menunggu callback ini sebelum mengirim pesan TTS berikutnya, sehingga **tidak terjadi tumpang tindih suara**.
 
-> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.3 (Flowchart 3c & 3d).
+> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.3 (Flowchart 3c).
 
 ---
 
-### SD-3b. Deteksi Medan (Jalur C)
+### SD-3b. Deteksi Kendaraan Jauh — Jalur B (Delta Bounding Box, > 4m)
 
-Fokus pada **deteksi perubahan medan** (tangga, lubang, penurunan) menggunakan analisis pola ToF + konfirmasi YOLO. Jalur ini berjalan **paralel** dengan SD-3a setiap frame.
+Fokus pada **deteksi objek di luar jangkauan ToF** (> 4 meter). Menggunakan perubahan ukuran bounding box YOLO antar frame untuk mendeteksi objek yang mendekat cepat.
+
+```mermaid
+sequenceDiagram
+    participant App as Aplikasi Android
+    participant TTS as Text-to-Speech
+    participant TN as Tunanetra
+
+    Note over App: Data Hasil Mapping dari SD-2 (Mode Otonom)
+    Note over App: Objek Terdeteksi Diluar Jangkauan ToF (> 4m)
+
+    App->>App: Ambil BBox Objek dari YOLO (Frame Saat Ini)
+    App->>App: Ambil BBox Objek dari YOLO (Frame Sebelumnya)
+    App->>App: Hitung ΔBBox = Area BBox Baru − Area BBox Lama
+
+    alt Area BBox Membesar > 20% Antar Frame
+        Note over App: Objek Mendekat Cepat (Kemungkinan Kendaraan)
+        App->>TTS: "AWAS, Kendaraan Mendekat dari Jam [X]"
+        Note over TTS: Tanpa Info Jarak — ToF Tidak Menjangkau > 4m
+        TTS-->>TN: Audio Peringatan
+        TTS-->>App: Callback: Audio Selesai
+
+    else Area BBox Stabil (Δ < 5%)
+        Note over App: Objek Diam / Bergerak Paralel — Tidak Ada Suara
+
+    else Area BBox Mengecil
+        Note over App: Objek Menjauh — Tidak Ada Suara
+    end
+
+    Note over App: Saat Objek Masuk ≤ 4m → Beralih ke SD-3a (Jalur A)
+```
+
+**Penjelasan komunikasi antar aktor:**
+
+1. **App → App** (Internal — Delta BBox): Aplikasi membandingkan area (luas piksel) bounding box objek yang sama antara frame saat ini dan frame sebelumnya. Jika area membesar > 20%, berarti objek mendekat ke kamera dengan kecepatan tinggi — kemungkinan besar kendaraan.
+2. **Tanpa Info Jarak**: Karena sensor ToF VL53L5CX memiliki jangkauan maksimum 4 meter, objek di luar jangkauan tidak memiliki data jarak. Peringatan hanya menyebutkan **arah jam**, bukan jarak.
+3. **Transisi ke Jalur A**: Saat objek terus mendekat dan akhirnya masuk jangkauan ToF (≤ 4m), sistem **otomatis beralih** ke Jalur A (SD-3a) yang menggunakan threshold adaptif dengan data jarak presisi dari ToF.
+4. **App → TTS → Tunanetra**: Pesan peringatan dikirim ke TTS dan callback menunggu sebelum pesan berikutnya — mekanisme anti-tumpang-tindih yang sama seperti SD-3a.
+
+> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.3 (Flowchart 3d).
+
+---
+
+### SD-3c. Deteksi Medan — Jalur C (Analisis Pola ToF)
+
+Fokus pada **deteksi perubahan medan** (tangga, lubang, penurunan) menggunakan analisis pola ToF + konfirmasi YOLO. Jalur ini berjalan **paralel** dengan SD-3a dan SD-3b setiap frame.
 
 ```mermaid
 sequenceDiagram
