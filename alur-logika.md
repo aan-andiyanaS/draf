@@ -565,8 +565,8 @@
 
    **Penjelasan langkah demi langkah:**
 
-   1. **Hitung Delta Bounding Box** — Membandingkan area bounding box objek yang sama antara frame saat ini dan frame sebelumnya: $\Delta A = (A_{baru} - A_{lama}) / A_{lama} \times 100\%$. Jika bbox membesar, objek mendekat ke kamera.
-   2. **Cek Signifikansi** — Jika $\Delta A > 20\%$ dalam satu interval frame, objek dianggap **mendekati dengan kecepatan tinggi** (misalnya kendaraan bermotor).
+   1. **Hitung Delta Bounding Box** — Membandingkan area bounding box objek yang sama antara frame saat ini dan frame sebelumnya: $\Delta A = (A_{baru} - A_{lama}) / A_{lama} \times 100\text{\%}$. Jika bbox membesar, objek mendekat ke kamera.
+   2. **Cek Signifikansi** — Jika $\Delta A > 20\text{\%}$ dalam satu interval frame, objek dianggap **mendekati dengan kecepatan tinggi** (misalnya kendaraan bermotor).
       - **Ya**: Keluarkan peringatan mendesak via TTS. Peringatan **tanpa info jarak** karena ToF tidak bisa mengukur di luar 4 meter.
       - **Tidak**: BBox stabil atau mengecil → objek diam atau menjauh → tidak ada peringatan.
    3. **Catatan Penting**: Jalur ini hanya bisa menginformasikan bahwa objek **mendekat**, tetapi tidak bisa memberikan jarak pasti. Saat objek akhirnya masuk jangkauan ToF ($D \le 4$ m), sistem otomatis berpindah ke Jalur A (Flowchart 3c) yang memberikan jarak akurat.

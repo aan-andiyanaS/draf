@@ -274,7 +274,7 @@ stateDiagram-v2
    - **Tanya Jawab**: Lapor semua objek terdeteksi.
 4. **ModeOtonom — DeteksiParalel** — Tiga jalur deteksi berjalan bersamaan:
    - **JalurA** ($D \le 4$ m): Threshold adaptif $T = \min(1 + v \times 2, \ 4)$ dengan 3 cabang accelerometer (user bergerak / objek mendekat / kedua statis).
-   - **JalurB** ($D > 4$ m): Delta bounding box YOLO ($\Delta A > 20\%$) untuk kendaraan mendekat.
+   - **JalurB** ($D > 4$ m): Delta bounding box YOLO ($\Delta A > 20\text{\%}$) untuk kendaraan mendekat.
    - **DeteksiMedan**: Analisis rasio ToF $R = \bar{D}_{bawah} / \bar{D}_{tengah}$ untuk tangga/lubang/penurunan.
 5. **OutputTTS** — Pesan dikirim ke TTS, audio diputar, callback diterima. Mencegah tumpang tindih suara.
 

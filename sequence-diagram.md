@@ -447,7 +447,7 @@ sequenceDiagram
 
 **Penjelasan komunikasi antar aktor:**
 
-1. **App → App** (Internal — Delta BBox): Aplikasi membandingkan area bounding box objek yang sama antara frame saat ini dan frame sebelumnya: $\Delta A = (A_{baru} - A_{lama}) / A_{lama} \times 100\%$. Jika $\Delta A > 20\%$, berarti objek mendekat ke kamera dengan kecepatan tinggi — kemungkinan besar kendaraan.
+1. **App → App** (Internal — Delta BBox): Aplikasi membandingkan area bounding box objek yang sama antara frame saat ini dan frame sebelumnya: $\Delta A = (A_{baru} - A_{lama}) / A_{lama} \times 100\text{\%}$. Jika $\Delta A > 20\text{\%}$, berarti objek mendekat ke kamera dengan kecepatan tinggi — kemungkinan besar kendaraan.
 2. **Tanpa Info Jarak**: Karena sensor ToF VL53L5CX memiliki jangkauan maksimum 4 meter, objek di luar jangkauan tidak memiliki data jarak. Peringatan hanya menyebutkan **arah jam**, bukan jarak.
 3. **Transisi ke Jalur A**: Saat objek terus mendekat dan akhirnya masuk jangkauan ToF ($D \le 4$ m), sistem **otomatis beralih** ke Jalur A (SD-3a) yang menggunakan threshold adaptif $T = \min(1 + v \times 2, \ 4)$ dengan data jarak presisi dari ToF.
 4. **App → TTS → Tunanetra**: Pesan peringatan dikirim ke TTS dan callback menunggu sebelum pesan berikutnya — mekanisme anti-tumpang-tindih yang sama seperti SD-3a.

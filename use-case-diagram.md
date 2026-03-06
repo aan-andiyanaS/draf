@@ -189,7 +189,7 @@ graph LR
 1. **Mulai Navigasi** — Tunanetra menyalakan perangkat (tombol power). Sistem auto-connect ke WiFi via kredensial NVS, menginisialisasi sensor, dan otomatis memilih mode berdasarkan kondisi (WiFi + cahaya). Tidak perlu bantuan pendamping.
 2. **Navigasi Mode Otonom** — Mode default. Sistem **hanya memperingatkan** saat ada bahaya — tidak memberikan informasi jika aman. Secara otomatis menjalankan tiga jalur deteksi:
    - **Deteksi Objek Dekat ($D \le 4$ m)**: Menggunakan threshold adaptif $T = \min(1 + v \times 2, \ 4)$ berdasarkan kecepatan pendekatan (Flowchart 3c).
-   - **Deteksi Kendaraan Jauh ($D > 4$ m)**: Menggunakan delta bounding box YOLO ($\Delta A > 20\%$) untuk mendeteksi objek mendekat cepat (Flowchart 3d).
+   - **Deteksi Kendaraan Jauh ($D > 4$ m)**: Menggunakan delta bounding box YOLO ($\Delta A > 20\text{\%}$) untuk mendeteksi objek mendekat cepat (Flowchart 3d).
    - **Deteksi Medan**: Menganalisis rasio ToF $R = \bar{D}_{bawah} / \bar{D}_{tengah}$ untuk mengenali tangga, lubang, atau parit (Flowchart 3e).
 3. **Navigasi Mode Tanya Jawab** — Tunanetra menekan tombol untuk bertanya, sistem menyebutkan **semua objek** yang terdeteksi beserta arah dan jarak. Tidak ada filter — semua informasi dilaporkan.
 4. **Ganti Mode Aplikasi** — Tunanetra menekan tombol fisik untuk beralih antara Mode Otonom dan Mode Tanya Jawab. Feedback suara mengkonfirmasi mode yang aktif.

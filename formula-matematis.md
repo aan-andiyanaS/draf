@@ -344,7 +344,7 @@ $$A = (x_{max} - x_{min}) \times (y_{max} - y_{min})$$
 
 ### Formula G.2 — Delta Area Antar Frame
 
-$$\Delta A = \frac{A_{baru} - A_{lama}}{A_{lama}} \times 100\%$$
+$$\Delta A = \frac{A_{baru} - A_{lama}}{A_{lama}} \times 100\text{\%}$$
 
 | Variabel | Tipe | Satuan | Deskripsi |
 |---|---|---|---|
@@ -354,11 +354,11 @@ $$\Delta A = \frac{A_{baru} - A_{lama}}{A_{lama}} \times 100\%$$
 
 ### Formula G.3 — Logika Peringatan
 
-$$\text{Peringatan} = \begin{cases} \text{Ya}, & \text{jika } \Delta A > 20\% \\ \text{Tidak}, & \text{jika } \Delta A \le 20\% \end{cases}$$
+$$\text{Peringatan} = \begin{cases} \text{Ya}, & \text{jika } \Delta A > 20\text{\%} \\ \text{Tidak}, & \text{jika } \Delta A \le 20\text{\%} \end{cases}$$
 
 | Variabel | Tipe | Satuan | Deskripsi |
 |---|---|---|---|
-| $20\%$ | Konstanta | Persen | **Threshold signifikansi**. Dipilih berdasarkan pertimbangan berikut: perubahan < 5% = noise YOLO (jitter deteksi). Perubahan 5-20% = objek bergerak pelan atau bergerak paralel. Perubahan > 20% = objek **mendekati kamera dengan kecepatan tinggi**. |
+| $20\text{\%}$ | Konstanta | Persen | **Threshold signifikansi**. Dipilih berdasarkan pertimbangan berikut: perubahan < 5% = noise YOLO (jitter deteksi). Perubahan 5-20% = objek bergerak pelan atau bergerak paralel. Perubahan > 20% = objek **mendekati kamera dengan kecepatan tinggi**. |
 
 ### Perbandingan Jalur A vs Jalur B
 
@@ -374,9 +374,9 @@ $$\text{Peringatan} = \begin{cases} \text{Ya}, & \text{jika } \Delta A > 20\% \\
 
 BBox motor: $A_{lama} = 5000\text{ px}^2$ (frame sebelumnya), $A_{baru} = 6500\text{ px}^2$ (frame sekarang):
 
-$$\Delta A = \frac{6500 - 5000}{5000} \times 100\% = \frac{1500}{5000} \times 100\% = 30\%$$
+$$\Delta A = \frac{6500 - 5000}{5000} \times 100\text{\%} = \frac{1500}{5000} \times 100\text{\%} = 30\text{\%}$$
 
-$30\% > 20\%$ → **PERINGATAN**: *"AWAS, Kendaraan Mendekat dari Jam 12!"*
+$30\text{\%} > 20\text{\%}$ → **PERINGATAN**: *"AWAS, Kendaraan Mendekat dari Jam 12!"*
 
 ---
 
@@ -533,7 +533,7 @@ $$\text{Sumber Gerakan} = \begin{cases} \text{User bergerak}, & \text{jika } a_{
 | **D** | $D = \frac{1}{3}\sum_{r=3}^{5} \text{ToF}[r][C]$ | Kolom ToF | Jarak (m) | Mengukur jarak presisi dari objek | Flowchart 3a, SD-2 |
 | **E** | $T = \min(1 + v \times 2, 4)$ | Kecepatan | Threshold (m) | Peringatan dini saat bergerak cepat | Flowchart 3c, SD-3a |
 | **F** | $D < 1\text{m} \wedge \neg flag$ | Jarak + flag | Peringatan sekali | Mencegah spam suara saat diam | Flowchart 3c, SD-3a |
-| **G** | $\Delta A = (A_b - A_l) / A_l \times 100\%$ | BBox area | Peringatan kendaraan | Deteksi kendaraan di luar jangkauan ToF | Flowchart 3d, SD-3b |
+| **G** | $\Delta A = (A_b - A_l) / A_l \times 100\text{\%}$ | BBox area | Peringatan kendaraan | Deteksi kendaraan di luar jangkauan ToF | Flowchart 3d, SD-3b |
 | **H** | $R = \bar{D}_{bawah} / \bar{D}_{tengah}$ | ToF baris 6-7 vs 4-5 | Anomali medan | Deteksi tangga, lubang, parit | Flowchart 3e, SD-3c |
 | **I** | $D_{min} < 1\text{m}$ → Buzzer | ToF semua zona | Buzzer ON/OFF | Keselamatan terakhir tanpa HP | Flowchart 3.5.4, SD-4 |
 | **J** | $a_{acc}$ vs $\Delta D$ | Accel + jarak | Sumber gerakan | Menentukan cabang mana di Formula E/F | Flowchart 3c, SD-3a |
