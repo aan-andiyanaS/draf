@@ -410,7 +410,7 @@ stateDiagram-v2
 Saat sistem dalam Mode Smart, tiga jalur deteksi berjalan **bersamaan secara paralel**.
 
 ```mermaid
-stateDiagram
+stateDiagram-v2
     state SmartMode {
         [*] --> CekModeApp
 
