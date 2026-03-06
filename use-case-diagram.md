@@ -8,7 +8,7 @@ Dokumen ini menyajikan **Use Case Diagram** untuk sistem IoT bantu navigasi tuna
 
 | Aktor | Jenis | Deskripsi |
 |---|---|---|
-| **Tunanetra** | Primer | Pengguna utama perangkat wearable. Berinteraksi melalui suara (TTS) dan tombol fisik |
+| **Tunanetra** | Primer | Pengguna utama perangkat wearable. Berinteraksi melalui suara (TTS), buzzer, LED indikator, dan tombol multifungsi (GPIO39) pada frame kacamata |
 | **Pendamping** | Primer | *Sighted companion* yang membantu setup awal (provisioning). Hanya dibutuhkan satu kali |
 | **Perangkat IoT (ESP32)** | Sistem | Perangkat wearable yang mengambil data sensor dan video |
 | **Smartphone (Android)** | Sistem | Memproses AI (YOLO), menghasilkan output TTS, dan menjadi hub komunikasi |
@@ -133,7 +133,7 @@ graph LR
 
 **Penjelasan Use Case:**
 
-1. **Nyalakan Perangkat** — Tunanetra menekan tombol power pada perangkat wearable. Ini satu-satunya aksi yang dilakukan tunanetra pada tahap provisioning. ESP32-S3 boot dan mengaktifkan BLE.
+1. **Nyalakan Perangkat** — Tunanetra menekan tombol multifungsi (GPIO39) pada perangkat wearable. Ini satu-satunya aksi yang dilakukan tunanetra pada tahap provisioning. ESP32-S3 boot, LED indikator (GPIO48) berkedip cepat menandakan mode BLE Provisioning, dan mengaktifkan BLE.
 2. **Setup Koneksi BLE** — Pendamping menyalakan Bluetooth & Hotspot WiFi di smartphone, membuka aplikasi Android, kemudian melakukan scan dan memilih perangkat IoT dari daftar BLE. Langkah ini memerlukan interaksi visual dengan layar sehingga dilakukan pendamping.
 3. **Provisioning WiFi** — Pendamping memilih jaringan WiFi (biasanya Hotspot HP sendiri) dan mengirimkan kredensialnya ke perangkat IoT. Terdiri dari tiga sub-proses:
    - **Scan Jaringan WiFi**: IoT memindai jaringan WiFi di sekitar dan mengirim hasilnya ke aplikasi.
@@ -146,7 +146,7 @@ graph LR
 
 ## Use Case 2: Operasi Harian (Navigasi)
 
-Menampilkan interaksi tunanetra saat penggunaan sehari-hari. Semua interaksi melalui **suara (TTS)** dan **tombol fisik** — tidak perlu melihat layar.
+Menampilkan interaksi tunanetra saat penggunaan sehari-hari. Semua interaksi melalui **suara (TTS)**, **LED indikator (GPIO48)**, dan **tombol multifungsi (GPIO39)** — tidak perlu melihat layar.
 
 ```mermaid
 graph LR
@@ -186,14 +186,15 @@ graph LR
 
 **Penjelasan Use Case:**
 
-1. **Mulai Navigasi** — Tunanetra menyalakan perangkat (tombol power). Sistem auto-connect ke WiFi via kredensial NVS, menginisialisasi sensor, dan otomatis memilih mode berdasarkan kondisi (WiFi + cahaya). Tidak perlu bantuan pendamping.
+1. **Mulai Navigasi** — Tunanetra menyalakan perangkat (tekan tombol multifungsi GPIO39). Sistem auto-connect ke WiFi via kredensial NVS, LED indikator menyala tetap (Mode Smart), menginisialisasi sensor, dan otomatis memilih mode berdasarkan kondisi (WiFi + cahaya). Tidak perlu bantuan pendamping.
 2. **Navigasi Mode Otonom** — Mode default. Sistem **hanya memperingatkan** saat ada bahaya — tidak memberikan informasi jika aman. Secara otomatis menjalankan tiga jalur deteksi:
    - **Deteksi Objek Dekat ($D \le 4$ m)**: Menggunakan threshold adaptif $T = \min(1 + v \times 2, \ 4)$ berdasarkan kecepatan pendekatan (Flowchart 3c).
    - **Deteksi Kendaraan Jauh ($D > 4$ m)**: Menggunakan delta bounding box YOLO ($\Delta A > 20\text{\%}$) untuk mendeteksi objek mendekat cepat (Flowchart 3d).
    - **Deteksi Medan**: Menganalisis rasio ToF $R = \bar{D}_{bawah} / \bar{D}_{tengah}$ untuk mengenali tangga, lubang, atau parit (Flowchart 3e).
-3. **Navigasi Mode Tanya Jawab** — Tunanetra menekan tombol untuk bertanya, sistem menyebutkan **semua objek** yang terdeteksi beserta arah dan jarak. Tidak ada filter — semua informasi dilaporkan.
-4. **Ganti Mode Aplikasi** — Tunanetra menekan tombol fisik untuk beralih antara Mode Otonom dan Mode Tanya Jawab. Feedback suara mengkonfirmasi mode yang aktif.
-5. **Matikan Perangkat** — Tunanetra menekan tombol power (long press) untuk mematikan sistem.
+3. **Navigasi Mode Tanya Jawab** — Tunanetra menekan tombol 2× cepat (double press GPIO39) untuk bertanya, sistem menyebutkan **semua objek** yang terdeteksi beserta arah dan jarak. LED indikator berkedip 2× + jeda menandakan Mode Tanya Jawab aktif.
+4. **Ganti Mode Aplikasi** — Tunanetra menekan tombol multifungsi 1× singkat (GPIO39) untuk beralih antara Mode Otonom dan Mode Tanya Jawab. Feedback suara TTS mengkonfirmasi mode yang aktif, dan pola LED berubah sesuai mode.
+5. **Matikan Perangkat** — Tunanetra menekan tombol multifungsi panjang (3–5 detik, GPIO39). Buzzer memberi feedback 2× beep pendek, LED mati, sistem masuk deep sleep.
+6. **Reset WiFi** — Tunanetra menekan tombol multifungsi sangat panjang (> 8 detik, GPIO39). Buzzer memberi feedback 3× beep panjang, kredensial WiFi di NVS dihapus, LED berkedip cepat, lalu ESP32 reboot ke mode BLE Provisioning.
 
 > **Referensi:** Detail logika deteksi ada di [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.3 (Flowchart 3a–3e).
 

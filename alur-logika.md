@@ -50,7 +50,7 @@
 
    **Penjelasan langkah demi langkah:**
 
-   1. **Nyalakan Perangkat IoT** — User menekan tombol power pada perangkat wearable (head unit). ESP32-S3 melakukan boot dan menginisialisasi semua modul hardware.
+   1. **Nyalakan Perangkat IoT** — User menekan tombol multifungsi (GPIO39) pada perangkat wearable (head unit). ESP32-S3 melakukan boot, LED indikator (GPIO48) menyala, dan menginisialisasi semua modul hardware.
    2. **BLE Aktif (Advertising)** — Setelah boot, ESP32 langsung mengaktifkan BLE dalam mode *advertising*, artinya perangkat mengirimkan sinyal agar bisa ditemukan oleh smartphone di sekitarnya.
    3. **Aksi Pendamping di Smartphone** — Pada setup pertama, langkah ini dilakukan oleh **pendamping** (*sighted companion*) karena memerlukan interaksi visual dengan layar smartphone. Pendamping menyalakan Bluetooth dan Hotspot WiFi pada smartphone, lalu membuka aplikasi Android yang sudah terinstall.
    4. **Scan BLE & Pilih Perangkat** — Aplikasi menampilkan daftar perangkat BLE yang terdeteksi. **Pendamping** memilih perangkat IoT dari daftar tersebut.

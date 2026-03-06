@@ -269,7 +269,7 @@ stateDiagram-v2
    - **→ Paused**: User diam > 10 detik. YOLO di-pause, tapi VL53L5CX + buzzer tetap aktif.
    - **→ Processing**: User bergerak, pemrosesan data normal dimulai.
 2. **Processing** — Proses paralel: YOLO inference (frame video) dan ToF processing (matriks jarak) berjalan bersamaan, lalu hasilnya di-mapping ke arah jam menggunakan titik tengah bounding box ($X_c$) dan formula kolom ToF $C_{index} = \lfloor (X_c - 80) / 60 \rfloor$.
-3. **CekModeApp** — Pilihan user (via tombol fisik):
+3. **CekModeApp** — Pilihan user (via tombol multifungsi GPIO39 — tekan singkat 1× untuk ganti mode):
    - **Otonom**: Hanya peringatan saat bahaya.
    - **Tanya Jawab**: Lapor semua objek terdeteksi.
 4. **ModeOtonom — DeteksiParalel** — Tiga jalur deteksi berjalan bersamaan:

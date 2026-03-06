@@ -423,3 +423,28 @@ flowchart TB
 | 5 | LED Indikator | GPIO48 + GND (via R220Ω) | 2 kabel + resistor | Anoda via resistor ke GPIO, katoda ke GND |
 | 6 | Li-Po + TP4056 + MT3608 | Pin 5V + GND | 2 kabel ke board | Output MT3608 5V ke pin 5V board |
 |   | **Total kabel manual** | | **~14 kabel** | |
+
+---
+
+## 10. Tabel Wiring Lengkap — Seluruh Komponen
+
+| No | Komponen | Pin Komponen | Pin ESP32 | Warna Kabel | Arah | Keterangan |
+|---|---|---|---|---|---|---|
+| 1 | **Kamera OV2640** | FPC 24-pin | GPIO4,5,6,7,8,9,10,11,12,13,15,16,17,18 | — | Input | Built-in via konektor FPC, **tidak perlu wiring manual** (14 GPIO terpakai) |
+| 2 | **VL53L5CX** | VIN | 3.3V | 🔴 Merah | Power | Daya 3.3V dari regulator board |
+| 3 | **VL53L5CX** | GND | GND | ⚫ Hitam | Power | Ground bersama |
+| 4 | **VL53L5CX** | SCL | GPIO2 | 🟢 Hijau | I2C | I2C Clock — bus terpisah dari kamera (GPIO5) |
+| 5 | **VL53L5CX** | SDA | GPIO1 | 🔵 Biru | I2C | I2C Data — bus terpisah dari kamera (GPIO4) |
+| 6 | **VL53L5CX** | INT | GPIO3 | 🟡 Kuning | Input | Interrupt data ready — *opsional* |
+| 7 | **VL53L5CX** | LPn | GPIO14 | ⚪ Putih | Output | Low-power enable — *opsional* |
+| 8 | **Buzzer Aktif** | + (Positif) | GPIO38 | 🔴 Merah | Output | `HIGH` = bunyi, `LOW` = diam. Jika arus > 12mA → tambah transistor NPN |
+| 9 | **Buzzer Aktif** | - (Negatif) | GND | ⚫ Hitam | Power | Ground bersama |
+| 10 | **Tombol Multifungsi** | Pin 1 | GPIO39 | 🟡 Kuning | Input | Pull-up internal aktif. `LOW` = ditekan, `HIGH` = dilepas |
+| 11 | **Tombol Multifungsi** | Pin 2 | GND | ⚫ Hitam | Power | Ground bersama |
+| 12 | **LED Indikator** | Anoda (+) | GPIO48 | 🟢 Hijau | Output | Via resistor 220Ω. `HIGH` = nyala, `LOW` = mati |
+| 13 | **LED Indikator** | Resistor 220Ω | — | — | — | Dipasang seri antara GPIO48 dan Anoda LED |
+| 14 | **LED Indikator** | Katoda (-) | GND | ⚫ Hitam | Power | Ground bersama |
+| 15 | **Li-Po → TP4056** | B+ / B- | TP4056 B+/B- | 🔴/⚫ | Power | Baterai ke modul charging |
+| 16 | **TP4056 → MT3608** | OUT+ / OUT- | MT3608 VIN/GND | 🔴/⚫ | Power | Output charging ke input boost converter |
+| 17 | **MT3608 → ESP32** | VOUT | Pin 5V | 🔴 Merah | Power | Output 5V boost → pin 5V board (set via trimpot) |
+| 18 | **MT3608 → ESP32** | GND | GND | ⚫ Hitam | Power | Ground bersama |

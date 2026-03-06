@@ -8,7 +8,7 @@ Dokumen ini sesuai dengan **sub-bab 3.6 Perancangan Interaksi dan Protokol Komun
 
 | Aktor | Peran |
 |---|---|
-| **Tunanetra** | Pengguna utama yang mengoperasikan perangkat via tombol & suara |
+| **Tunanetra** | Pengguna utama yang mengoperasikan perangkat via tombol multifungsi (GPIO39) & suara |
 | **Pendamping** | *Sighted companion* yang membantu setup awal (provisioning) |
 | **ESP32-S3 (IoT)** | Perangkat wearable yang mengirim data sensor & video |
 | **Aplikasi Android** | Smartphone yang menerima, memproses, dan menghasilkan output |
@@ -141,7 +141,7 @@ Diagram di atas menampilkan keseluruhan komunikasi. Karena terlalu besar untuk A
 
 ## SD-1. Provisioning (Koneksi Pertama Kali)
 
-Sequence diagram ini menunjukkan alur komunikasi antara **Pendamping**, **Aplikasi Android**, dan **Perangkat IoT** saat proses provisioning WiFi via BLE. Tunanetra hanya menekan tombol power.
+Sequence diagram ini menunjukkan alur komunikasi antara **Pendamping**, **Aplikasi Android**, dan **Perangkat IoT** saat proses provisioning WiFi via BLE. Tunanetra hanya menekan tombol multifungsi (GPIO39) untuk menyalakan perangkat.
 
 ```mermaid
 sequenceDiagram
@@ -183,7 +183,7 @@ sequenceDiagram
 
 **Penjelasan komunikasi antar aktor:**
 
-1. **Tunanetra → IoT** (Aksi Fisik): Tunanetra menekan tombol power — satu-satunya interaksi tunanetra saat provisioning. ESP32 boot dan mengaktifkan BLE secara internal.
+1. **Tunanetra → IoT** (Aksi Fisik): Tunanetra menekan tombol multifungsi (GPIO39) — satu-satunya interaksi tunanetra saat provisioning. ESP32 boot, LED indikator (GPIO48) berkedip cepat menandakan mode provisioning, dan BLE diaktifkan secara internal.
 2. **Pendamping → App** (Input Visual): Semua interaksi yang memerlukan layar dilakukan oleh pendamping: menyalakan BT/Hotspot, membuka app, memilih perangkat BLE, dan memilih WiFi.
 3. **App ↔ IoT** (Komunikasi BLE): Koneksi dua arah via BLE digunakan hanya untuk provisioning — scanning perangkat, scanning WiFi, dan pengiriman kredensial. Setelah WiFi terhubung, kanal BLE dapat diputus.
 4. **IoT → IoT** (Internal): Simpan kredensial ke NVS agar auto-connect di sesi berikutnya. Setelah langkah ini, **pendamping tidak lagi dibutuhkan** — sistem beroperasi mandiri.

@@ -39,11 +39,11 @@ Menguji proses setup awal perangkat — dari power ON hingga koneksi WiFi berhas
 
 | ID | Skenario Pengujian | Kondisi Awal | Masukan / Aksi | Keluaran yang Diharapkan | Status |
 |---|---|---|---|---|---|
-| P-01 | Perangkat dinyalakan pertama kali (NVS kosong) | ESP32 dalam keadaan mati, belum pernah terhubung WiFi | Tekan tombol power ON | ESP32 boot, LED indikator menyala, BLE Advertising aktif | ☐ |
+| P-01 | Perangkat dinyalakan pertama kali (NVS kosong) | ESP32 dalam keadaan mati, belum pernah terhubung WiFi | Tekan tombol multifungsi (GPIO39) | ESP32 boot, LED indikator (GPIO48) berkedip cepat (mode provisioning), BLE Advertising aktif | ☐ |
 | P-02 | Aplikasi mendeteksi perangkat via BLE | ESP32 dalam mode BLE Advertising | Buka aplikasi Android, aktifkan Bluetooth | Perangkat muncul di daftar scan BLE pada aplikasi | ☐ |
 | P-03 | Proses provisioning WiFi berhasil | Aplikasi terhubung ke ESP32 via BLE | Pendamping memilih SSID dan memasukkan password WiFi yang benar | ESP32 terhubung ke WiFi, kredensial tersimpan di NVS, BLE diputus otomatis | ☐ |
 | P-04 | Provisioning dengan password WiFi salah | Aplikasi terhubung ke ESP32 via BLE | Pendamping memasukkan password WiFi yang salah | Aplikasi menampilkan pesan error, user diminta memasukkan ulang password | ☐ |
-| P-05 | Auto-connect saat perangkat dinyalakan ulang | ESP32 pernah terhubung WiFi (NVS ada kredensial) | Tekan tombol power ON | ESP32 boot dan langsung auto-connect ke WiFi tanpa proses provisioning ulang | ☐ |
+| P-05 | Auto-connect saat perangkat dinyalakan ulang | ESP32 pernah terhubung WiFi (NVS ada kredensial) | Tekan tombol multifungsi (GPIO39) | ESP32 boot, LED menyala tetap (Mode Smart), auto-connect ke WiFi tanpa provisioning ulang | ☐ |
 | P-06 | WebSocket terhubung setelah WiFi aktif | ESP32 terhubung ke WiFi smartphone | Buka aplikasi Android dengan WiFi aktif | Koneksi WebSocket antara ESP32 dan aplikasi berhasil, data mulai mengalir (video + ToF) | ☐ |
 
 ---
@@ -143,8 +143,8 @@ Menguji interaksi user dengan sistem — mode aplikasi, output suara, dan penghe
 | ID | Skenario Pengujian | Kondisi Awal | Masukan / Aksi | Keluaran yang Diharapkan | Status |
 |---|---|---|---|---|---|
 | U-01 | Mode Otonom — peringatan hanya saat bahaya | Mode Otonom aktif, beberapa objek terdeteksi | User berjalan di lingkungan dengan objek jauh (> threshold) dan satu objek dekat | TTS **hanya** memperingatkan objek yang melebihi threshold; objek aman **tidak disebutkan** | ☐ |
-| U-02 | Mode Tanya Jawab — lapor semua objek | Mode Tanya Jawab aktif | User menekan tombol tanya | TTS **menyebutkan semua objek** yang terdeteksi beserta arah jam dan jarak masing-masing | ☐ |
-| U-03 | Ganti mode via tombol fisik | Sistem dalam Mode Otonom | User menekan tombol ganti mode | TTS mengkonfirmasi: "Mode Tanya Jawab aktif"; sistem beralih ke Mode Tanya Jawab | ☐ |
+| U-02 | Mode Tanya Jawab — lapor semua objek | Mode Tanya Jawab aktif | User menekan tombol 2× cepat (double press GPIO39) | TTS **menyebutkan semua objek** yang terdeteksi beserta arah jam dan jarak masing-masing | ☐ |
+| U-03 | Ganti mode via tombol multifungsi | Sistem dalam Mode Otonom | User menekan tombol 1× singkat (GPIO39) | TTS mengkonfirmasi: "Mode Tanya Jawab aktif"; LED berubah pola (2× kedip + jeda); sistem beralih ke Mode Tanya Jawab | ☐ |
 | U-04 | Auto-pause YOLO saat user diam > 10 detik | Mode Smart aktif, YOLO berjalan | User berdiri diam selama > 10 detik | YOLO dan video streaming **di-pause**; sensor ToF + buzzer **tetap aktif** untuk keamanan | ☐ |
 | U-05 | Anti-tumpang-tindih TTS (callback) | Mode Otonom aktif, beberapa peringatan bersamaan | Sistem mendeteksi 2 objek berbahaya sekaligus | TTS mengucapkan peringatan **satu per satu** (pesan kedua menunggu callback dari pesan pertama); tidak ada suara yang bertumpuk | ☐ |
 
