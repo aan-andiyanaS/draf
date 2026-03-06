@@ -268,14 +268,14 @@ stateDiagram-v2
 1. **CekGerak** — Accelerometer smartphone dibaca setiap siklus.
    - **→ Paused**: User diam > 10 detik. YOLO di-pause, tapi VL53L5CX + buzzer tetap aktif.
    - **→ Processing**: User bergerak, pemrosesan data normal dimulai.
-2. **Processing** — Proses paralel: YOLO inference (frame video) dan ToF processing (matriks jarak) berjalan bersamaan, lalu hasilnya di-mapping ke arah jam (10-2).
+2. **Processing** — Proses paralel: YOLO inference (frame video) dan ToF processing (matriks jarak) berjalan bersamaan, lalu hasilnya di-mapping ke arah jam menggunakan titik tengah bounding box ($X_c$) dan formula kolom ToF $C_{index} = \lfloor (X_c - 80) / 60 \rfloor$.
 3. **CekModeApp** — Pilihan user (via tombol fisik):
    - **Otonom**: Hanya peringatan saat bahaya.
    - **Tanya Jawab**: Lapor semua objek terdeteksi.
 4. **ModeOtonom — DeteksiParalel** — Tiga jalur deteksi berjalan bersamaan:
-   - **JalurA** (≤ 4m): Threshold adaptif dengan 3 cabang accelerometer (user bergerak / objek mendekat / kedua statis).
-   - **JalurB** (> 4m): Delta bounding box YOLO untuk kendaraan mendekat.
-   - **DeteksiMedan**: Analisis pola ToF baris bawah untuk tangga/lubang/penurunan.
+   - **JalurA** ($D \le 4$ m): Threshold adaptif $T = \min(1 + v \times 2, \ 4)$ dengan 3 cabang accelerometer (user bergerak / objek mendekat / kedua statis).
+   - **JalurB** ($D > 4$ m): Delta bounding box YOLO ($\Delta A > 20\%$) untuk kendaraan mendekat.
+   - **DeteksiMedan**: Analisis rasio ToF $R = \bar{D}_{bawah} / \bar{D}_{tengah}$ untuk tangga/lubang/penurunan.
 5. **OutputTTS** — Pesan dikirim ke TTS, audio diputar, callback diterima. Mencegah tumpang tindih suara.
 
 > **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.3 (Flowchart 3a–3e).
@@ -342,13 +342,13 @@ stateDiagram-v2
 
 1. **Offline Mode** — Dipicu oleh WiFi putus > 5 detik.
    - **MatikanKamera**: Kamera dimatikan untuk hemat daya. Tidak ada video, tidak ada YOLO.
-   - **SensorLoop**: ESP32 beroperasi mandiri — baca sensor VL53L5CX, buzzer jika jarak < 1m, coba reconnect WiFi setiap siklus.
+   - **SensorLoop**: ESP32 beroperasi mandiri — baca sensor VL53L5CX, buzzer jika $D_{min} < 1$ m, coba reconnect WiFi setiap siklus.
    - **Transisi keluar**: Hanya saat reconnect WiFi berhasil → kembali ke Mode Selection.
-   - **Threshold tetap 1m**: Karena tidak ada accelerometer/YOLO, kecepatan pendekatan tidak dapat dihitung.
-2. **Gelap Mode** — Dipicu oleh cahaya terlalu gelap.
-   - **KameraLowFPS**: Kamera tidak dimatikan total — masih digunakan untuk cek brightness secara periodik.
+   - **Threshold tetap $T = 1$ m**: Karena tidak ada accelerometer/YOLO, kecepatan pendekatan ($v$) tidak dapat dihitung.
+2. **Gelap Mode** — Dipicu oleh cahaya terlalu gelap ($B_{cam} < B_{threshold}$).
+   - **KameraLowFPS**: Kamera tidak dimatikan total — masih digunakan untuk cek brightness ($B_{cam}$) secara periodik.
    - **StopStreaming**: Video streaming ke smartphone dihentikan.
-   - **SensorLoopG**: Logika identik dengan Offline Mode (buzzer jarak < 1m).
-   - **Transisi keluar**: Saat brightness cukup (cahaya membaik) → kembali ke Mode Selection, potensial masuk Smart Mode.
+   - **SensorLoopG**: Logika identik dengan Offline Mode (buzzer $D_{min} < 1$ m).
+   - **Transisi keluar**: Saat $B_{cam} \ge B_{threshold}$ (cahaya membaik) → kembali ke Mode Selection, potensial masuk Smart Mode.
 
 > **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.4.

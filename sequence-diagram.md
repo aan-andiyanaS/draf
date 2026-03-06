@@ -224,16 +224,16 @@ sequenceDiagram
             App->>App: Proses Matriks Jarak VL53L5CX
         end
 
-        App->>App: Mapping Arah Jam (Posisi X → Jam 10-2)
+        App->>App: Mapping Arah Jam (Xc → Jam 10-2)
 
-        alt X < 20% atau X > 80%
-            Note over App: Luar Jangkauan ToF
+        alt Xc < 80 atau Xc ≥ 560 (Dead Zone)
+            Note over App: Luar Jangkauan ToF (Dead Zone 80px)
             App->>App: Set Jam 10/2, Jarak Unknown
-        else X = 20% - 80%
+        else 80 ≤ Xc < 560 (Dalam Jangkauan ToF)
             Note over App: Dalam Jangkauan ToF
-            App->>App: Set Jam 11/12/1
-            App->>App: Hitung Grid (Pixel ÷ 60)
-            App->>App: Ambil Jarak dari Array Sensor
+            App->>App: Arah Jam = [10,11,12,1,2][floor(Xc/128)]
+            App->>App: Cindex = floor((Xc − 80) / 60)
+            App->>App: Jarak = average(ToF baris 3-5, kolom Cindex)
         end
 
         Note over App: Data Siap → Lanjut ke SD-3
@@ -249,7 +249,7 @@ sequenceDiagram
    - **Matriks jarak 8×8**: Dikirim sebagai JSON array berisi 64 elemen (nilai jarak dalam milimeter) dari sensor VL53L5CX.
    - Kedua data dikirim dalam satu siklus, dengan delay minimal antar pengiriman (~ms).
 4. **App → AI** (Inferensi Paralel): Aplikasi mengirimkan frame ke YOLO Engine dan memproses matriks ToF secara bersamaan (`par`). Total latency = max(YOLO, ToF), bukan YOLO + ToF.
-5. **App → App** (Mapping Internal): Posisi X dari YOLO dipetakan ke arah jam. Objek di tepi frame (X < 20% atau > 80%) tidak memiliki data jarak ToF karena FoV sensor lebih sempit dari FoV kamera.
+5. **App → App** (Mapping Internal): Titik tengah bounding box ($X_c$) dipetakan ke arah jam. Pada resolusi 640×480, area tengah (piksel 80–559) di-cover oleh sensor ToF. Objek di luar area tersebut ($X_c < 80$ atau $X_c \ge 560$) hanya mendapat arah jam tanpa jarak. Kolom ToF dihitung dengan $C_{index} = \lfloor (X_c - 80) / 60 \rfloor$, lalu jarak diambil dari rata-rata baris 3-5 kolom tersebut.
 
 > **Referensi:** Flowchart pemrosesan di [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.3 (Flowchart 3a).
 
@@ -402,9 +402,9 @@ sequenceDiagram
 **Penjelasan komunikasi antar aktor:**
 
 1. **App → App** (Internal — Tiga Cabang Accelerometer):
-   - **User bergerak**: User mendekati objek statis. Kecepatan pendekatan dihitung dari delta jarak ToF antar frame. Threshold adaptif: `1m + (Kecepatan × 2 detik)`, maksimum 4m. Contoh: user berjalan 1 m/s → threshold 3m.
-   - **User diam + objek mendekat (ΔJarak positif)**: Objek bergerak mendekati user (misalnya kendaraan lambat). Threshold adaptif berdasarkan kecepatan objek — formula sama.
-   - **User diam + objek diam (ΔJarak = 0)**: Kedua statis. Jika jarak < 1m, peringatan diberikan **satu kali saja**. Aplikasi menandai objek tersebut agar tidak diulang. Tanda di-reset saat user bergerak atau objek berubah posisi.
+   - **User bergerak**: User mendekati objek statis. Kecepatan pendekatan dihitung dari delta jarak ToF antar frame: $v = |\Delta D| / \Delta t$. Threshold adaptif: $T = \min(1 + v \times 2, \ 4)$ meter. Contoh: user berjalan $v = 1$ m/s → $T = 3$ m.
+   - **User diam + objek mendekat ($\Delta D > 0$)**: Objek bergerak mendekati user (misalnya kendaraan lambat). Threshold adaptif berdasarkan kecepatan objek — formula sama.
+   - **User diam + objek diam ($\Delta D = 0$)**: Kedua statis. Jika $D_{objek} < 1$ m, peringatan diberikan **satu kali saja**. Aplikasi menandai objek tersebut agar tidak diulang. Tanda di-reset saat user bergerak atau objek berubah posisi.
 2. **App → TTS → Tunanetra** (Output Suara): Setiap pesan dikirim ke modul TTS Android sebagai string teks. TTS mengkonversi ke audio dan memutarnya. Setelah selesai, TTS mengirim **callback** ke aplikasi — aplikasi menunggu callback ini sebelum mengirim pesan TTS berikutnya, sehingga **tidak terjadi tumpang tindih suara**.
 
 > **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.3 (Flowchart 3c).
@@ -447,9 +447,9 @@ sequenceDiagram
 
 **Penjelasan komunikasi antar aktor:**
 
-1. **App → App** (Internal — Delta BBox): Aplikasi membandingkan area (luas piksel) bounding box objek yang sama antara frame saat ini dan frame sebelumnya. Jika area membesar > 20%, berarti objek mendekat ke kamera dengan kecepatan tinggi — kemungkinan besar kendaraan.
+1. **App → App** (Internal — Delta BBox): Aplikasi membandingkan area bounding box objek yang sama antara frame saat ini dan frame sebelumnya: $\Delta A = (A_{baru} - A_{lama}) / A_{lama} \times 100\%$. Jika $\Delta A > 20\%$, berarti objek mendekat ke kamera dengan kecepatan tinggi — kemungkinan besar kendaraan.
 2. **Tanpa Info Jarak**: Karena sensor ToF VL53L5CX memiliki jangkauan maksimum 4 meter, objek di luar jangkauan tidak memiliki data jarak. Peringatan hanya menyebutkan **arah jam**, bukan jarak.
-3. **Transisi ke Jalur A**: Saat objek terus mendekat dan akhirnya masuk jangkauan ToF (≤ 4m), sistem **otomatis beralih** ke Jalur A (SD-3a) yang menggunakan threshold adaptif dengan data jarak presisi dari ToF.
+3. **Transisi ke Jalur A**: Saat objek terus mendekat dan akhirnya masuk jangkauan ToF ($D \le 4$ m), sistem **otomatis beralih** ke Jalur A (SD-3a) yang menggunakan threshold adaptif $T = \min(1 + v \times 2, \ 4)$ dengan data jarak presisi dari ToF.
 4. **App → TTS → Tunanetra**: Pesan peringatan dikirim ke TTS dan callback menunggu sebelum pesan berikutnya — mekanisme anti-tumpang-tindih yang sama seperti SD-3a.
 
 > **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.3 (Flowchart 3d).
@@ -507,10 +507,10 @@ sequenceDiagram
 
 **Penjelasan komunikasi antar aktor:**
 
-1. **App → App** (Internal — Analisis ToF): Aplikasi membandingkan rata-rata jarak baris bawah (7-8, melihat lantai dekat kaki) dengan baris tengah (4-5, melihat lantai lebih jauh). Pada lantai datar, baris bawah harusnya **lebih dekat** (rasio < 0.7). Jika rasio > 0.8, berarti lantai di depan kaki "hilang" — ada perubahan elevasi.
-2. **App → App** (Internal — Pattern Recognition): Analisis pola seluruh matriks 8×8 membedakan dua kondisi:
-   - **Gradual + merata**: Jarak bertambah bertahap dan merata di semua kolom (std deviasi kecil) → kemungkinan tangga atau penurunan bertingkat. Perlu konfirmasi visual.
-   - **Tiba-tiba + lokal**: Jarak melonjak hanya di beberapa kolom (std deviasi besar) → kemungkinan lubang, parit, atau selokan. Langsung peringatan tanpa konfirmasi visual.
+1. **App → App** (Internal — Analisis ToF): Aplikasi membandingkan rata-rata jarak baris bawah ($\bar{D}_{bawah}$, baris 6-7) dengan baris tengah ($\bar{D}_{tengah}$, baris 4-5). Pada lantai datar, $\bar{D}_{bawah}$ harusnya **lebih dekat** ($R < 0.7$). Jika $R > 0.8$, berarti lantai di depan kaki "hilang" — ada perubahan elevasi.
+2. **App → App** (Internal — Pattern Recognition): Analisis standar deviasi ($\sigma$) per baris dari seluruh matriks 8×8 membedakan dua kondisi:
+   - **Gradual + $\sigma$ kecil**: Jarak bertambah bertahap dan merata di semua kolom → kemungkinan tangga atau penurunan bertingkat. Perlu konfirmasi visual.
+   - **Tiba-tiba + $\sigma$ besar**: Jarak melonjak hanya di beberapa kolom → kemungkinan lubang, parit, atau selokan. Langsung peringatan tanpa konfirmasi visual.
 3. **App → AI** (Request Konfirmasi YOLO): Satu-satunya komunikasi ke YOLO Engine di Jalur C — meminta konfirmasi visual apakah pola gradual tersebut adalah tangga. Ini penting karena ToF saja tidak bisa membedakan tangga dari penurunan tanpa anak tangga.
 4. **Pesan TTS yang Berbeda**: Tangga → info deskriptif (*"Tangga di depan"*). Lubang/penurunan → peringatan bahaya (*"AWAS!"*). Perbedaan ini penting agar user tahu tingkat urgensi.
 
@@ -617,7 +617,7 @@ sequenceDiagram
 
 1. **IoT → IoT** (Internal — Matikan Kamera): Kamera dimatikan karena tanpa WiFi, frame video tidak bisa dikirim ke smartphone untuk diproses YOLO. Penghematan daya signifikan.
 2. **Tidak Ada Komunikasi IoT ↔ App**: Selama WiFi putus, **tidak ada data apapun** yang berpindah antara ESP32 dan smartphone. ESP32 beroperasi sepenuhnya mandiri.
-3. **Threshold Tetap 1 Meter**: Berbeda dengan Mode Smart yang menggunakan threshold adaptif (1m–4m), mode offline hanya menggunakan **1 meter tetap**. Alasan: tanpa smartphone, tidak ada data accelerometer untuk menghitung kecepatan pendekatan, dan tidak ada YOLO untuk identifikasi objek. Threshold 1m dipilih sebagai jarak aman minimum untuk pejalan kaki.
+3. **Threshold Tetap $T = 1$ Meter**: Berbeda dengan Mode Smart yang menggunakan threshold adaptif ($T = 1 \sim 4$ m), mode offline hanya menggunakan $T = 1$ meter tetap. Alasan: tanpa smartphone, tidak ada data accelerometer untuk menghitung kecepatan pendekatan ($v$), dan tidak ada YOLO untuk identifikasi objek. Threshold $T = 1$ m dipilih sebagai jarak aman minimum untuk pejalan kaki.
 4. **IoT → IoT** (Internal — Buzzer): Buzzer dibunyikan langsung oleh ESP32 tanpa melalui smartphone. Ini mekanisme **fail-safe terakhir** — output berupa bunyi fisik dari perangkat wearable, bukan TTS dari HP.
 5. **IoT → IoT → App** (Reconnect): ESP32 secara periodik mencoba koneksi WiFi. Saat berhasil, mengirim satu notifikasi ke App via WebSocket, lalu sistem kembali ke mode normal.
 
@@ -669,7 +669,7 @@ sequenceDiagram
 
 1. **IoT → IoT** (Internal — Kamera Low FPS): Berbeda dengan Mode Offline yang mematikan kamera, Mode Gelap **tetap menyalakan kamera** pada FPS rendah. Tujuannya untuk mengecek brightness secara periodik — jika cahaya membaik, sistem bisa segera kembali ke Mode Smart.
 2. **IoT → App** (Stop Streaming): Satu pesan via WebSocket dikirim dari ESP32 ke App untuk menghentikan penerimaan video stream. Setelah ini, App tahu untuk **tidak mengaktifkan YOLO Engine** — menghemat baterai HP.
-3. **Siklus Sensor Identik**: Logika buzzer (jarak < 1m) identik dengan Mode Offline. Threshold tetap 1 meter dengan alasan yang sama: kecepatan pendekatan tidak dapat dihitung tanpa YOLO/accelerometer aktif.
+3. **Siklus Sensor Identik**: Logika buzzer ($D_{min} < 1$ m) identik dengan Mode Offline. Threshold tetap $T = 1$ meter dengan alasan yang sama: kecepatan pendekatan tidak dapat dihitung tanpa YOLO/accelerometer aktif.
 4. **Transisi Keluar**: Saat kamera mendeteksi brightness di atas threshold, IoT mengirim notifikasi ke App untuk resume streaming → sistem kembali ke Mode Smart dengan YOLO aktif.
 
 > **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.4 (Mode Gelap).

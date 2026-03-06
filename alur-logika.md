@@ -111,9 +111,9 @@
       YOLO --> MAPPING{Logika Mapping<br/>Arah Jam 10-2}
       ToF --> MAPPING
 
-      MAPPING -- X < 20% / X > 80% --> LUAR[Set: Arah Jam 10 atau 2<br/>Status: Jarak Unknown]
-      MAPPING -- X = 20% - 80% --> DALAM[Set: Arah Jam 11, 12, atau 1]
-      DALAM --> HITUNG_GRID[Hitung Grid Pixel/60<br/>Ambil Data Array Jarak]
+      MAPPING -- Xc < 80 atau Xc ≥ 560 --> LUAR[Set: Arah Jam 10 atau 2<br/>Status: Jarak Unknown]
+      MAPPING -- 80 ≤ Xc < 560 --> DALAM[Set: Arah Jam 11, 12, atau 1]
+      DALAM --> HITUNG_GRID[Cindex = floor paren Xc − 80 per 60<br/>Ambil Jarak dari ToF baris 3-5 kolom Cindex]
 
       %% ════ 3.5.3 FLOWCHART 3b: PERCABANGAN MODE APLIKASI ════
       LUAR --> CEK_MODE{Cek Mode Aplikasi?}
@@ -271,9 +271,9 @@
       YOLO --> MAPPING{Logika Mapping<br/>Arah Jam 10-2}
       ToF --> MAPPING
 
-      MAPPING -- X < 20% / X > 80% --> LUAR[Set: Arah Jam 10 atau 2<br/>Status: Jarak Unknown]
-      MAPPING -- X = 20% - 80% --> DALAM[Set: Arah Jam 11, 12, atau 1]
-      DALAM --> HITUNG_GRID[Hitung Grid Pixel/60<br/>Ambil Data Array Jarak]
+      MAPPING -- Xc < 80 atau Xc ≥ 560 --> LUAR[Set: Arah Jam 10 atau 2<br/>Status: Jarak Unknown]
+      MAPPING -- 80 ≤ Xc < 560 --> DALAM[Set: Arah Jam 11, 12, atau 1]
+      DALAM --> HITUNG_GRID[Cindex = floor paren Xc − 80 per 60<br/>Ambil Jarak dari ToF baris 3-5 kolom Cindex]
 
       %% ════ FLOWCHART 3b: PERCABANGAN MODE APLIKASI ════
       LUAR --> CEK_MODE{Cek Mode Aplikasi?}
@@ -393,10 +393,10 @@
       ToF --> MAPPING
 
       %% Logika Percabangan Arah Jam
-      MAPPING -- X < 20% / X > 80% --> LUAR[Set: Arah Jam 10 atau 2  Status: Jarak Unknown]
-      MAPPING -- X = 20% - 80% --> DALAM[Set: Arah Jam 11, 12, atau 1]
+      MAPPING -- Xc < 80 atau Xc ≥ 560 --> LUAR[Set: Arah Jam 10 atau 2  Status: Jarak Unknown]
+      MAPPING -- 80 ≤ Xc < 560 --> DALAM[Set: Arah Jam 11, 12, atau 1]
 
-      DALAM --> HITUNG_GRID[Hitung Grid Pixel/60  Ambil Data Array Jarak]
+      DALAM --> HITUNG_GRID[Cindex = floor paren Xc − 80 per 60  Ambil Jarak ToF baris 3-5 kolom Cindex]
 
       LUAR --> GOTO_OUTPUT([Lanjut ke  Flowchart 3b])
       HITUNG_GRID --> GOTO_OUTPUT
@@ -422,10 +422,10 @@
    3. **Proses Paralel** — Smartphone memproses kedua data secara paralel:
       - **YOLO (AI)**: Model YOLOv11 Nano (TFLite) mendeteksi objek pada frame video. Output berupa label objek dan koordinat bounding box (posisi X).
       - **ToF (Jarak)**: Matriks jarak 8×8 dari VL53L5CX diproses menjadi data jarak per zona.
-   4. **Mapping Arah Jam** — Hasil deteksi YOLO (posisi X objek) digabungkan dengan data jarak ToF. Posisi horizontal objek dipetakan ke arah jam (10, 11, 12, 1, 2):
-      - **X < 20% atau X > 80%**: Objek berada di tepi frame (luar jangkauan ToF). Arah jam di-set ke 10 atau 2 dengan status jarak *unknown* karena sensor tidak meng-cover area tersebut.
-      - **X = 20% - 80%**: Objek berada dalam jangkauan sensor. Arah jam dipetakan ke 11, 12, atau 1.
-   5. **Hitung Grid** — Untuk objek dalam jangkauan, sistem menghitung zona grid (pixel ÷ 60) untuk menentukan kolom sensor ToF yang sesuai, lalu mengambil data jarak dari array sensor pada kolom tersebut.
+   4. **Mapping Arah Jam** — Titik tengah bounding box ($X_c$) menentukan arah jam. Resolusi kamera 640×480, dibagi 5 zona: Jam 10 ($X_c < 80$), Jam 11 ($80 \le X_c < 240$), Jam 12 ($240 \le X_c < 400$), Jam 1 ($400 \le X_c < 560$), Jam 2 ($X_c \ge 560$).
+      - **$X_c < 80$ atau $X_c \ge 560$**: Objek berada di tepi frame (luar jangkauan ToF). Arah jam di-set ke 10 atau 2 dengan status jarak *unknown* karena sensor ToF tidak meng-cover area tersebut (dead zone 80px di tiap sisi).
+      - **$80 \le X_c < 560$**: Objek berada dalam jangkauan sensor. Arah jam dipetakan ke 11, 12, atau 1.
+   5. **Hitung Kolom ToF** — Untuk objek dalam jangkauan, indeks kolom dihitung: $C_{index} = \lfloor (X_c - 80) / 60 \rfloor$ (8 kolom, masing-masing 60px). Jarak diambil dari rata-rata baris 3-5 di kolom tersebut.
    6. **Lanjut ke Flowchart 3b** — Data hasil mapping (objek + arah + jarak) diteruskan untuk keputusan output.
 
    ---
@@ -525,15 +525,15 @@
 
    **Penjelasan langkah demi langkah:**
 
-   1. **Hitung Delta Jarak** — Menghitung selisih jarak objek antara frame sekarang dan frame sebelumnya: `ΔJarak = Jarak Lama − Jarak Baru`. Jika positif, objek mendekat.
+   1. **Hitung Delta Jarak** — Menghitung selisih jarak objek antara frame sekarang dan frame sebelumnya: $\Delta D = D_{lama} - D_{baru}$. Jika positif, objek mendekat.
    2. **Cek Accelerometer Smartphone** — Menentukan siapa yang bergerak, dengan tiga kemungkinan:
       - **User bergerak**: User berjalan mendekati objek statis (misalnya tiang, tembok).
-      - **User diam + ΔJarak positif**: Objek bergerak mendekati user yang diam (misalnya kendaraan).
-      - **User diam + ΔJarak = 0**: Baik user maupun objek tidak bergerak (misalnya user berdiri di dekat tiang). Cek apakah jarak < 1 meter.
-   3. **Hitung Kecepatan Pendekatan** — `Kecepatan = ΔJarak / Waktu Antar Frame` (dalam m/s). Sumber data: sensor jarak ToF VL53L5CX.
-   4. **Threshold Adaptif** — `Threshold = 1m + (Kecepatan × 2 detik)`, dengan batas maksimum 4 meter (jangkauan sensor). Contoh: user jalan 1 m/s → threshold 3 meter; objek & user diam → threshold tetap 1 meter.
-   5. **Filter & Output** — Jika jarak saat ini kurang dari threshold → keluarkan peringatan TTS dengan info lengkap (nama objek, arah jam, jarak). Jika tidak → diam.
-   6. **Peringatan Objek Statis** — Jika user dan objek sama-sama diam, dan jarak < 1 meter, sistem memberikan peringatan **satu kali** (tidak diulang-ulang). Peringatan akan di-reset jika user bergerak atau objek berubah posisi. Hal ini mencegah spam suara saat user sengaja berdiri di dekat objek.
+      - **User diam + $\Delta D > 0$**: Objek bergerak mendekati user yang diam (misalnya kendaraan).
+      - **User diam + $\Delta D = 0$**: Baik user maupun objek tidak bergerak (misalnya user berdiri di dekat tiang). Cek apakah $D_{objek} < 1$ meter.
+   3. **Hitung Kecepatan Pendekatan** — $v = |\Delta D| / \Delta t$ (dalam m/s). Sumber data: sensor jarak ToF VL53L5CX.
+   4. **Threshold Adaptif** — $T = \min(1 + v \times 2, \ 4)$ meter. Contoh: user jalan $v = 1$ m/s → $T = 3$ meter; objek & user diam → $T = 1$ meter (tetap).
+   5. **Filter & Output** — Jika $D_{objek} < T$ → keluarkan peringatan TTS dengan info lengkap (nama objek, arah jam, jarak). Jika $D_{objek} \ge T$ → diam.
+   6. **Peringatan Objek Statis** — Jika user dan objek sama-sama diam, dan $D_{objek} < 1$ meter, sistem memberikan peringatan **satu kali** (tidak diulang-ulang). Peringatan akan di-reset jika user bergerak atau objek berubah posisi. Hal ini mencegah spam suara saat user sengaja berdiri di dekat objek.
 
    ---
 
@@ -565,11 +565,11 @@
 
    **Penjelasan langkah demi langkah:**
 
-   1. **Hitung Delta Bounding Box** — Membandingkan ukuran (area) bounding box objek yang sama antara frame saat ini dan frame sebelumnya. Jika bbox membesar, objek mendekat ke kamera.
-   2. **Cek Signifikansi** — Jika area bounding box bertambah lebih dari 20% dalam satu interval frame, objek dianggap **mendekati dengan kecepatan tinggi** (misalnya kendaraan bermotor).
+   1. **Hitung Delta Bounding Box** — Membandingkan area bounding box objek yang sama antara frame saat ini dan frame sebelumnya: $\Delta A = (A_{baru} - A_{lama}) / A_{lama} \times 100\%$. Jika bbox membesar, objek mendekat ke kamera.
+   2. **Cek Signifikansi** — Jika $\Delta A > 20\%$ dalam satu interval frame, objek dianggap **mendekati dengan kecepatan tinggi** (misalnya kendaraan bermotor).
       - **Ya**: Keluarkan peringatan mendesak via TTS. Peringatan **tanpa info jarak** karena ToF tidak bisa mengukur di luar 4 meter.
       - **Tidak**: BBox stabil atau mengecil → objek diam atau menjauh → tidak ada peringatan.
-   3. **Catatan Penting**: Jalur ini hanya bisa menginformasikan bahwa objek **mendekat**, tetapi tidak bisa memberikan jarak pasti. Saat objek akhirnya masuk jangkauan ToF (≤ 4m), sistem otomatis berpindah ke Jalur A (Flowchart 3c) yang memberikan jarak akurat.
+   3. **Catatan Penting**: Jalur ini hanya bisa menginformasikan bahwa objek **mendekat**, tetapi tidak bisa memberikan jarak pasti. Saat objek akhirnya masuk jangkauan ToF ($D \le 4$ m), sistem otomatis berpindah ke Jalur A (Flowchart 3c) yang memberikan jarak akurat.
 
    ---
 
@@ -612,11 +612,11 @@
 
    **Penjelasan langkah demi langkah:**
 
-   1. **Baca ToF Baris Bawah** — Setiap frame, sistem membaca rata-rata jarak baris 7-8 (area paling bawah FoV, melihat lantai dekat) dan membandingkan dengan baris 4-5 (area tengah FoV, melihat lantai jauh).
-   2. **Cek Anomali Medan** — Pada lantai datar normal, baris bawah harusnya **lebih dekat** dari baris tengah (rasio < 0.7). Jika rasio > 0.8 (baris bawah hampir sama atau lebih jauh dari tengah), berarti ada **perubahan medan** — lantai di depan kaki user "hilang" atau berubah ketinggian.
-   3. **Analisis Pola Matriks** — Jika anomali terdeteksi, sistem menganalisis pola seluruh matriks 8×8:
-      - **Gradual naik + merata semua kolom**: Jarak bertambah bertahap dan merata di semua kolom (std deviasi kecil) → pola khas **tangga** atau **penurunan bertingkat**. Konfirmasi dengan YOLO.
-      - **Tiba-tiba besar di zona tertentu**: Jarak melonjak hanya di beberapa kolom (std deviasi besar) → pola khas **lubang** atau **parit/selokan**.
+   1. **Baca ToF Baris Bawah** — Setiap frame, sistem membaca rata-rata jarak baris 6-7 ($\bar{D}_{bawah}$) dan membandingkan dengan baris 4-5 ($\bar{D}_{tengah}$).
+   2. **Cek Anomali Medan** — Dihitung rasio $R = \bar{D}_{bawah} / \bar{D}_{tengah}$. Pada lantai datar normal, baris bawah harusnya **lebih dekat** ($R < 0.7$). Jika $R > 0.8$ (baris bawah hampir sama atau lebih jauh dari tengah), berarti ada **perubahan medan** — lantai di depan kaki user "hilang" atau berubah ketinggian.
+   3. **Analisis Pola Matriks** — Jika anomali terdeteksi, sistem menganalisis standar deviasi ($\sigma$) per baris dari seluruh matriks 8×8:
+      - **Gradual naik + $\sigma$ kecil**: Jarak bertambah bertahap dan merata di semua kolom → pola khas **tangga** atau **penurunan bertingkat**. Konfirmasi dengan YOLO.
+      - **Tiba-tiba besar + $\sigma$ besar**: Jarak melonjak hanya di beberapa kolom → pola khas **lubang** atau **parit/selokan**.
    4. **Konfirmasi YOLO** — Untuk pola gradual:
       - **YOLO deteksi tangga**: Informasi deskriptif *"Tangga di depan"* (bukan peringatan bahaya).
       - **YOLO tidak deteksi tangga**: Peringatan *"AWAS, penurunan di depan!"* (bisa tangga turun yang tidak terlihat secara visual).
@@ -627,7 +627,7 @@
 
    Algoritma ini mencakup dua mode fallback untuk kondisi non-ideal. Kedua mode disatukan dalam satu flowchart karena sama-sama hanya mengandalkan **sensor jarak VL53L5CX + buzzer** tanpa pemrosesan AI (YOLO tidak aktif).
 
-   > **Catatan:** Pada mode darurat, threshold jarak tetap menggunakan **1 meter** (bukan threshold adaptif seperti di Flowchart 3c). Hal ini karena pada mode darurat, ESP32 beroperasi mandiri tanpa smartphone — tidak ada data accelerometer maupun YOLO, sehingga kecepatan pendekatan tidak dapat dihitung. Threshold tetap 1 meter dipilih sebagai jarak aman minimum untuk pejalan kaki.
+   > **Catatan:** Pada mode darurat, threshold jarak tetap menggunakan $T = 1$ meter (bukan threshold adaptif $T = \min(1 + v \times 2, \ 4)$ seperti di Flowchart 3c). Hal ini karena pada mode darurat, ESP32 beroperasi mandiri tanpa smartphone — tidak ada data accelerometer maupun YOLO, sehingga kecepatan pendekatan ($v$) tidak dapat dihitung. Threshold tetap $T = 1$ meter dipilih sebagai jarak aman minimum untuk pejalan kaki.
 
    ```mermaid
    flowchart TD

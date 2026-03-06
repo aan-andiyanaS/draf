@@ -188,9 +188,9 @@ graph LR
 
 1. **Mulai Navigasi** — Tunanetra menyalakan perangkat (tombol power). Sistem auto-connect ke WiFi via kredensial NVS, menginisialisasi sensor, dan otomatis memilih mode berdasarkan kondisi (WiFi + cahaya). Tidak perlu bantuan pendamping.
 2. **Navigasi Mode Otonom** — Mode default. Sistem **hanya memperingatkan** saat ada bahaya — tidak memberikan informasi jika aman. Secara otomatis menjalankan tiga jalur deteksi:
-   - **Deteksi Objek Dekat (≤ 4m)**: Menggunakan threshold adaptif berdasarkan kecepatan pendekatan (Flowchart 3c).
-   - **Deteksi Kendaraan Jauh (> 4m)**: Menggunakan delta bounding box YOLO untuk mendeteksi objek mendekat cepat (Flowchart 3d).
-   - **Deteksi Medan**: Menganalisis pola ToF untuk mengenali tangga, lubang, atau parit (Flowchart 3e).
+   - **Deteksi Objek Dekat ($D \le 4$ m)**: Menggunakan threshold adaptif $T = \min(1 + v \times 2, \ 4)$ berdasarkan kecepatan pendekatan (Flowchart 3c).
+   - **Deteksi Kendaraan Jauh ($D > 4$ m)**: Menggunakan delta bounding box YOLO ($\Delta A > 20\%$) untuk mendeteksi objek mendekat cepat (Flowchart 3d).
+   - **Deteksi Medan**: Menganalisis rasio ToF $R = \bar{D}_{bawah} / \bar{D}_{tengah}$ untuk mengenali tangga, lubang, atau parit (Flowchart 3e).
 3. **Navigasi Mode Tanya Jawab** — Tunanetra menekan tombol untuk bertanya, sistem menyebutkan **semua objek** yang terdeteksi beserta arah dan jarak. Tidak ada filter — semua informasi dilaporkan.
 4. **Ganti Mode Aplikasi** — Tunanetra menekan tombol fisik untuk beralih antara Mode Otonom dan Mode Tanya Jawab. Feedback suara mengkonfirmasi mode yang aktif.
 5. **Matikan Perangkat** — Tunanetra menekan tombol power (long press) untuk mematikan sistem.
@@ -237,8 +237,8 @@ graph LR
 **Penjelasan Use Case:**
 
 1. **Mode Smart / AI** — Aktif saat WiFi terhubung DAN cahaya cukup terang. Seluruh kemampuan sistem digunakan: kamera + YOLO + ToF + accelerometer. Menghasilkan output TTS yang informatif.
-2. **Mode Offline / Safety** — Aktif otomatis saat WiFi putus lebih dari 5 detik. Kamera dimatikan, YOLO tidak bisa digunakan. ESP32 beroperasi mandiri dengan sensor VL53L5CX + buzzer saja. Threshold tetap 1 meter.
-3. **Mode Gelap / Low-Light** — Aktif saat kamera mendeteksi kondisi cahaya terlalu gelap untuk YOLO. Kamera Low FPS (untuk pengecekan brightness periodik), video streaming dihentikan. Deteksi mengandalkan sensor VL53L5CX + buzzer.
-4. **Peringatan Buzzer Darurat** — Di-*include* oleh Mode Offline dan Mode Gelap. Buzzer pada ESP32 dibunyikan langsung (tanpa melalui smartphone) saat sensor mendeteksi objek pada jarak < 1 meter. Ini adalah mekanisme fail-safe terakhir jika TTS tidak tersedia.
+2. **Mode Offline / Safety** — Aktif otomatis saat WiFi putus lebih dari 5 detik. Kamera dimatikan, YOLO tidak bisa digunakan. ESP32 beroperasi mandiri dengan sensor VL53L5CX + buzzer saja. Threshold tetap $T = 1$ meter.
+3. **Mode Gelap / Low-Light** — Aktif saat kamera mendeteksi $B_{cam} < B_{threshold}$ (kondisi cahaya terlalu gelap untuk YOLO). Kamera Low FPS (untuk pengecekan brightness periodik), video streaming dihentikan. Deteksi mengandalkan sensor VL53L5CX + buzzer.
+4. **Peringatan Buzzer Darurat** — Di-*include* oleh Mode Offline dan Mode Gelap. Buzzer pada ESP32 dibunyikan langsung (tanpa melalui smartphone) saat sensor mendeteksi $D_{min} < 1$ meter. Ini adalah mekanisme fail-safe terakhir jika TTS tidak tersedia.
 
 > **Referensi:** Detail logika mode ada di [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.2 (Penentuan Mode) dan 3.5.4 (Mode Darurat).
