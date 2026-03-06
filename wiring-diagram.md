@@ -203,22 +203,104 @@ Pin 5V pada board ESP32-S3 WROOM bersifat **bidirectional** (bisa input dan outp
 
 ---
 
-## 5. Pin Mapping — Tombol Power/Reset
+## 5. Pin Mapping — Tombol Multifungsi Eksternal
 
-Tombol push button sederhana untuk reset manual perangkat.
+Satu tombol push button eksternal yang dipasang di **posisi mudah dijangkau** pada frame kacamata (misalnya di gagang kacamata dekat telinga). Tombol ini menangani **tiga fungsi** berdasarkan pola tekanan.
 
-| Pin Tombol | Pin ESP32 | Keterangan |
-|---|---|---|
-| **Pin 1** | **GPIO0 (BOOT)** | Tombol boot bawaan board (sudah ada di kebanyakan dev board) |
-| **Pin 2** | **GND** | Ground |
+```mermaid
+flowchart LR
+    subgraph BUTTON ["Push Button Eksternal"]
+        B1["Pin 1"]
+        B2["Pin 2"]
+    end
+
+    subgraph ESP32 ["ESP32-S3 WROOM"]
+        G39["GPIO39"]
+        GND_E["GND"]
+    end
+
+    B1 ---|Kuning| G39
+    B2 ---|Hitam| GND_E
+
+    classDef input fill:#fff9c4,stroke:#f9a825,stroke-width:2px;
+    classDef mcu fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    class B1,B2 input;
+    class G39,GND_E mcu;
+```
+
+| Pin Tombol | Pin ESP32 | Warna Kabel | Keterangan |
+|---|---|---|---|
+| **Pin 1** | **GPIO39** | 🟡 Kuning | Input digital dengan pull-up internal |
+| **Pin 2** | **GND** | ⚫ Hitam | Ground |
+
+### Pola Tekanan dan Fungsi
+
+| Pola Tekanan | Durasi | Fungsi | Feedback |
+|---|---|---|---|
+| **Tekan singkat** (1×) | < 1 detik | **Ganti mode** (Otonom ↔ Tanya Jawab) | TTS: "Mode Otonom Aktif" / "Mode Tanya Jawab Aktif" |
+| **Tekan 2× cepat** (double press) | 2× dalam 0.5 detik | **Trigger tanya** (hanya di Mode Tanya Jawab) | TTS menyebutkan semua objek yang terdeteksi |
+| **Tekan panjang** | 3–5 detik | **Matikan perangkat** (deep sleep) | Buzzer: 2× beep pendek, LED mati |
+| **Tekan sangat panjang** | > 8 detik | **Reset WiFi** (hapus kredensial NVS) | Buzzer: 3× beep panjang, LED berkedip cepat, lalu reboot ke mode provisioning |
 
 **Catatan:**
-- Kebanyakan board ESP32-S3 WROOM sudah memiliki tombol **BOOT** dan **RST** built-in, sehingga **tidak perlu wiring tambahan**.
-- Jika ingin menambahkan tombol custom, gunakan GPIO yang tersedia (misalnya GPIO39) dengan resistor pull-up internal: `pinMode(39, INPUT_PULLUP)`.
+- Menggunakan **pull-up internal** (`pinMode(39, INPUT_PULLUP)`). Saat tombol ditekan, GPIO39 = LOW.
+- GPIO39 dipilih karena tersedia, aman untuk input, dan tidak ada fungsi strapping.
+- **Tidak perlu resistor eksternal** — pull-up internal ESP32-S3 (~45kΩ) sudah cukup.
+- Tombol dipasang di **gagang kacamata** agar mudah dijangkau oleh tunanetra tanpa perlu melihat.
 
 ---
 
-## 6. Ringkasan GPIO — Seluruh Komponen
+## 6. Pin Mapping — LED Indikator
+
+Satu LED eksternal yang menunjukkan status sistem. Dipasang di **sisi luar frame kacamata** agar terlihat oleh pendamping atau orang di sekitar.
+
+```mermaid
+flowchart LR
+    subgraph LED_EXT ["LED + Resistor"]
+        LA["Anoda (+)"]
+        R220["Resistor 220Ω"]
+        LK["Katoda (-)"]
+    end
+
+    subgraph ESP32 ["ESP32-S3 WROOM"]
+        G48["GPIO48"]
+        GND_E["GND"]
+    end
+
+    G48 ---|Hijau| LA
+    LA --- R220
+    R220 --- LK
+    LK ---|Hitam| GND_E
+
+    classDef led fill:#c8e6c9,stroke:#388e3c,stroke-width:2px;
+    classDef mcu fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    class LA,R220,LK led;
+    class G48,GND_E mcu;
+```
+
+| Pin LED | Pin ESP32 | Warna Kabel | Keterangan |
+|---|---|---|---|
+| **Anoda (+)** | **GPIO48** (via resistor 220Ω) | 🟢 Hijau | Output digital (HIGH = nyala) |
+| **Katoda (-)** | **GND** | ⚫ Hitam | Ground |
+
+### Pola LED dan Status Sistem
+
+| Pola LED | Kecepatan | Status Sistem |
+|---|---|---|
+| **Menyala tetap** (solid) | — | Sistem aktif — Mode Smart berjalan normal |
+| **Berkedip lambat** | 1× per 2 detik | Mode Darurat (Offline / Gelap) — ESP32 mandiri |
+| **Berkedip cepat** | 3× per detik | BLE Provisioning aktif — menunggu koneksi dari app |
+| **Berkedip 2× lalu jeda** | 2× cepat, jeda 1 detik | Mode Tanya Jawab aktif |
+| **Mati** | — | Perangkat mati (deep sleep) atau tidak ada daya |
+
+**Catatan:**
+- **Resistor 220Ω wajib** — tanpa resistor, LED akan rusak. Perhitungan: $(3.3\text{V} - 2.0\text{V}) / 220\Omega \approx 6\text{mA}$ (aman untuk GPIO ESP32, maks 12mA).
+- GPIO48 dipilih karena beberapa board ESP32-S3 sudah memiliki **LED built-in** di GPIO48. Jika board sudah punya LED built-in, **tidak perlu wiring tambahan**.
+- Jika board tidak punya LED built-in di GPIO48, wiring manual diperlukan (LED + resistor 220Ω).
+
+---
+
+## 7. Ringkasan GPIO — Seluruh Komponen
 
 ### GPIO yang Digunakan
 
@@ -243,6 +325,8 @@ Tombol push button sederhana untuk reset manual perangkat.
 | GPIO3 | INT (opsional) | VL53L5CX |
 | GPIO14 | LPn (opsional) | VL53L5CX |
 | GPIO38 | Buzzer Output | Buzzer Aktif |
+| **GPIO39** | **Input Tombol** | **Tombol Multifungsi Eksternal** |
+| **GPIO48** | **Output LED** | **LED Indikator Eksternal** |
 
 ### GPIO yang Masih Tersedia
 
@@ -252,7 +336,6 @@ Tombol push button sederhana untuk reset manual perangkat.
 | GPIO19 | ✅ Tersedia | USB D- (jangan pakai jika pakai USB native) |
 | GPIO20 | ✅ Tersedia | USB D+ (jangan pakai jika pakai USB native) |
 | GPIO21 | ✅ Tersedia | General purpose |
-| GPIO39 | ✅ Tersedia | General purpose |
 | GPIO40 | ✅ Tersedia | General purpose |
 | GPIO41 | ✅ Tersedia | General purpose |
 | GPIO42 | ✅ Tersedia | General purpose |
@@ -261,11 +344,10 @@ Tombol push button sederhana untuk reset manual perangkat.
 | GPIO45 | ⚠️ Strapping | Boot mode select |
 | GPIO46 | ⚠️ Strapping | Boot mode select |
 | GPIO47 | ✅ Tersedia | General purpose |
-| GPIO48 | ✅ Tersedia | General purpose (LED bawaan di beberapa board) |
 
 ---
 
-## 7. Skema Wiring Lengkap
+## 8. Skema Wiring Lengkap
 
 Diagram koneksi seluruh komponen ke ESP32-S3 WROOM:
 
@@ -289,18 +371,25 @@ flowchart TB
 
     subgraph OUTPUT ["Output"]
         BUZZ["Buzzer Aktif 3.3V<br/>(GPIO38)"]
+        LED["LED Indikator<br/>(GPIO48 + R220Ω)"]
     end
 
-    %% Jalur Daya (merah)
+    subgraph INPUT ["Input"]
+        BTN["Tombol Multifungsi<br/>(GPIO39 + Pull-Up)"]
+    end
+
+    %% Jalur Daya
     LIPO --> TP4056
     TP4056 --> MT3608
     MT3608 -->|"5V"| AMS
     AMS -->|"3.3V"| ESP32
 
-    %% Jalur Data (hitam)
+    %% Jalur Data
     CAM ---|FPC 24-pin<br/>Built-in| ESP32
     TOF ---|I2C: SDA=GPIO1<br/>SCL=GPIO2| ESP32
     ESP32 ---|GPIO38| BUZZ
+    ESP32 ---|GPIO48| LED
+    BTN ---|GPIO39| ESP32
 
     ESP32 <-.->|WiFi WebSocket<br/>& BLE Provisioning| PHONE["📱 Smartphone"]
 
@@ -308,21 +397,29 @@ flowchart TB
     classDef sensor fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px;
     classDef output fill:#fff3e0,stroke:#e65100,stroke-width:2px;
     classDef power fill:#fce4ec,stroke:#c62828,stroke-width:2px;
+    classDef input fill:#fff9c4,stroke:#f9a825,stroke-width:2px;
     classDef external fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,stroke-dasharray: 5 5;
 
     class ESP32,CAM,AMS mcu;
     class TOF sensor;
-    class BUZZ output;
+    class BUZZ,LED output;
+    class BTN input;
     class LIPO,TP4056,MT3608 power;
     class PHONE external;
 
     linkStyle 0,1,2,3 stroke:#f44336,stroke-width:2px;
 ```
 
-**Catatan akhir:**
-- **Power**: Li-Po 3.7V → TP4056 (charging/proteksi) → MT3608 (boost ke 5V) → Pin 5V board → AMS1117 bawaan (5V → 3.3V).
-- **Charging**: Colok Micro-USB ke **TP4056** untuk mengisi baterai. ESP32 tetap menyala saat charging.
-- **MT3608**: Harus di-set ke **5.0V** via trimpot sebelum dihubungkan.
-- **Kamera**: Built-in via FPC, tidak perlu wiring tambahan.
-- **VL53L5CX**: Wiring manual ke I2C (4 kabel wajib + 2 opsional).
-- **Buzzer**: 2 kabel (positif ke GPIO38, negatif ke GND).
+---
+
+## 9. Ringkasan Komponen dan Kabel
+
+| No | Komponen | Koneksi ke ESP32 | Jumlah Kabel | Keterangan |
+|---|---|---|---|---|
+| 1 | Kamera OV2640 | FPC 24-pin (built-in) | 0 (built-in) | Tidak perlu wiring manual |
+| 2 | Sensor VL53L5CX | I2C (GPIO1, GPIO2) + opsional (GPIO3, GPIO14) | 4-6 kabel | VIN, GND, SDA, SCL + INT, LPn |
+| 3 | Buzzer Aktif | GPIO38 + GND | 2 kabel | Positif ke GPIO, negatif ke GND |
+| 4 | Tombol Multifungsi | GPIO39 + GND | 2 kabel | Pull-up internal, tidak perlu resistor |
+| 5 | LED Indikator | GPIO48 + GND (via R220Ω) | 2 kabel + resistor | Anoda via resistor ke GPIO, katoda ke GND |
+| 6 | Li-Po + TP4056 + MT3608 | Pin 5V + GND | 2 kabel ke board | Output MT3608 5V ke pin 5V board |
+|   | **Total kabel manual** | | **~14 kabel** | |
