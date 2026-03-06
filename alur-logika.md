@@ -1,4 +1,4 @@
-   # Alur Logika - Sistem Kerja Perangkat
+﻿   # Alur Logika - Sistem Kerja Perangkat
 
    Dokumen ini menjelaskan seluruh alur kerja perangkat IoT bantu navigasi tunanetra, mulai dari koneksi pertama kali (provisioning) hingga logika pemrosesan di setiap mode operasi. Dokumen ini sesuai dengan **sub-bab 3.5 Perancangan Logika dan Algoritma Sistem** pada BAB 3 skripsi.
 
@@ -6,14 +6,15 @@
 
    | Sub-bab | Algoritma | Jumlah Flowchart |
    |---|---|---|
-   | 3.5.1 | Koneksi Awal (Provisioning) | 1 flowchart |
-   | 3.5.2 | Penentuan Mode Operasi | 1 flowchart |
-   | 3.5.3 | Pemrosesan Cerdas (Smart Mode) | 5 flowchart (3a–3e) |
-   | 3.5.4 | Mode Darurat (Fail-Safe) | 1 flowchart |
+   | 3.5.1 | Formulasi Matematis | — (lihat [formula-matematis.md](file:///d:/Project/Skripsi/docs/formula-matematis.md)) |
+   | 3.5.2 | Koneksi Awal (Provisioning) | 1 flowchart |
+   | 3.5.3 | Penentuan Mode Operasi | 1 flowchart |
+   | 3.5.4 | Pemrosesan Cerdas (Smart Mode) | 5 flowchart (3a–3e) |
+   | 3.5.5 | Mode Darurat (Fail-Safe) | 1 flowchart |
 
    ---
 
-   ## 3.5.1. Algoritma Koneksi Awal (Provisioning)
+   ## 3.5.2. Algoritma Koneksi Awal (Provisioning)
 
    Algoritma ini menjelaskan proses setup awal saat perangkat IoT dinyalakan untuk pertama kali. Perangkat menggunakan **BLE (Bluetooth Low Energy)** untuk melakukan provisioning kredensial WiFi dari smartphone ke perangkat IoT, sehingga kedua perangkat dapat berkomunikasi via WiFi (WebSocket) secara otomatis di sesi-sesi berikutnya.
 
@@ -28,7 +29,7 @@
       KirimKoneksi[App → IoT: Kirim Kredensial → IoT Koneksi WiFi]
       CheckConn{Terkoneksi?}
       SaveAktif[IoT: Simpan WiFi ke NVS → Sistem Aktif]
-      End([Selesai → Lanjut ke 3.5.2])
+      End([Selesai → Lanjut ke 3.5.3])
 
       Start --> ActivateBLE --> UserPrep --> ScanPilih
       ScanPilih --> ConnBLE --> ProvWiFi --> KirimKoneksi
@@ -64,11 +65,11 @@
 
    ## Flowchart Gabungan: Keseluruhan Sistem Setelah Provisioning
 
-   Flowchart berikut menampilkan **keseluruhan alur kerja sistem** setelah provisioning selesai, mencakup penentuan mode (3.5.2), pemrosesan cerdas/Smart Mode (3.5.3), dan mode darurat/fail-safe (3.5.4) dalam satu gambar besar.
+   Flowchart berikut menampilkan **keseluruhan alur kerja sistem** setelah provisioning selesai, mencakup penentuan mode (3.5.3), pemrosesan cerdas/Smart Mode (3.5.4), dan mode darurat/fail-safe (3.5.5) dalam satu gambar besar.
 
    ```mermaid
    flowchart TD
-      %% ════ 3.5.2: PENENTUAN MODE OPERASI ════
+      %% ════ 3.5.3: PENENTUAN MODE OPERASI ════
       START([Mulai: Sistem Aktif]) --> INIT[Inisialisasi Hardware:<br/>ESP32, Kamera, VL53L5CX]
       INIT --> CEK_WIFI{Cek Koneksi WiFi?}
 
@@ -78,7 +79,7 @@
       CEK_CAHAYA -- Gelap --> MODE_LOW[MODE LOW-LIGHT]
       CEK_CAHAYA -- Terang --> MODE_SMART([Mode Smart / AI])
 
-      %% ════ 3.5.4: MODE DARURAT — OFFLINE ════
+      %% ════ 3.5.5: MODE DARURAT — OFFLINE ════
       MODE_SAFETY --> CAM_OFF[Matikan Kamera]
       MODE_SAFETY --> BACA_SENSOR[Baca Sensor Jarak VL53L5CX]
 
@@ -91,12 +92,12 @@
       CEK_ULANG -- Ya --> CEK_CAHAYA
       CEK_ULANG -- Tidak --> BACA_SENSOR
 
-      %% ════ 3.5.4: MODE DARURAT — GELAP ════
+      %% ════ 3.5.5: MODE DARURAT — GELAP ════
       MODE_LOW --> CAM_LOW[Kamera Low FPS]
       MODE_LOW --> STOP_STREAM[Stop Video Streaming]
       MODE_LOW --> BACA_SENSOR
 
-      %% ════ 3.5.3 FLOWCHART 3a: PEMROSESAN DATA & MAPPING ════
+      %% ════ 3.5.4 FLOWCHART 3a: PEMROSESAN DATA & MAPPING ════
       MODE_SMART --> CEK_GERAK{Accelerometer:<br/>User Bergerak?}
 
       CEK_GERAK -- Diam > 10 Detik --> PAUSE_YOLO[Pause YOLO & Streaming]
@@ -115,7 +116,7 @@
       MAPPING -- 80 ≤ Xc < 560 --> DALAM[Set: Arah Jam 11, 12, atau 1]
       DALAM --> HITUNG_GRID[Cindex = floor paren Xc − 80 per 60<br/>Ambil Jarak dari ToF baris 3-5 kolom Cindex]
 
-      %% ════ 3.5.3 FLOWCHART 3b: PERCABANGAN MODE APLIKASI ════
+      %% ════ 3.5.4 FLOWCHART 3b: PERCABANGAN MODE APLIKASI ════
       LUAR --> CEK_MODE{Cek Mode Aplikasi?}
       HITUNG_GRID --> CEK_MODE
 
@@ -126,7 +127,7 @@
       PARALEL --> CEK_JANGKAUAN{Objek dalam<br/>Jangkauan ToF?<br/>≤ 4 Meter}
       PARALEL --> CEK_BAWAH[Baca ToF Baris 7-8<br/>Bandingkan dengan Baris 4-5]
 
-      %% ════ 3.5.3 FLOWCHART 3c: JALUR A — DETEKSI OBJEK DEKAT ════
+      %% ════ 3.5.4 FLOWCHART 3c: JALUR A — DETEKSI OBJEK DEKAT ════
       CEK_JANGKAUAN -- Ya: ≤ 4m --> DELTA_TOF[Hitung Delta Jarak ToF:<br/>ΔJarak = Jarak Lama − Jarak Baru]
       DELTA_TOF --> CEK_ACCEL{Cek Accelerometer<br/>Smartphone}
 
@@ -149,13 +150,13 @@
       CEK_STATIS -- Ya + Belum Pernah<br/>Diperingatkan --> TTS_STATIS[Suara: Objek Dekat<br/>di Jam X, Jarak Y]
       CEK_STATIS -- Tidak / Sudah<br/>Diperingatkan --> SILENT
 
-      %% ════ 3.5.3 FLOWCHART 3d: JALUR B — DETEKSI KENDARAAN JAUH ════
+      %% ════ 3.5.4 FLOWCHART 3d: JALUR B — DETEKSI KENDARAAN JAUH ════
       CEK_JANGKAUAN -- Tidak: > 4m --> BBOX[Hitung Delta Bounding Box:<br/>ΔBBox = BBox Baru − BBox Lama]
       BBOX --> CEK_BBOX{BBox Membesar<br/>Signifikan?<br/>Area +20% Antar Frame}
       CEK_BBOX -- Ya: Objek Mendekat --> TTS_FAR[Suara: AWAS<br/>Kendaraan Mendekat<br/>dari Arah Jam X]
       CEK_BBOX -- Tidak: Stabil/Mengecil --> SILENT
 
-      %% ════ 3.5.3 FLOWCHART 3e: JALUR C — DETEKSI MEDAN ════
+      %% ════ 3.5.4 FLOWCHART 3e: JALUR C — DETEKSI MEDAN ════
       CEK_BAWAH --> CEK_ANOMALI{Anomali Medan?<br/>Rasio Bawah/Tengah<br/>> 0.8}
       CEK_ANOMALI -- Tidak: Normal --> MEDAN_AMAN[Medan Datar: Aman]
       CEK_ANOMALI -- Ya: Anomali --> ANALISIS[Analisis Pola<br/>Seluruh Matriks 8×8]
@@ -204,13 +205,13 @@
 
    | Sub-bab | Bagian | Area pada Gambar Besar |
    |---|---|---|
-   | **3.5.2** | Penentuan Mode Operasi | Bagian paling atas (Sistem Aktif → 3 mode) |
-   | **3.5.3** | Smart Mode (Flowchart 3a–3e) | Bagian tengah dan bawah |
-   | **3.5.4** | Mode Darurat (Offline & Gelap) | Cabang kiri atas |
+   | **3.5.3** | Penentuan Mode Operasi | Bagian paling atas (Sistem Aktif → 3 mode) |
+   | **3.5.4** | Smart Mode (Flowchart 3a–3e) | Bagian tengah dan bawah |
+   | **3.5.5** | Mode Darurat (Offline & Gelap) | Cabang kiri atas |
 
    ---
 
-   ## 3.5.2. Algoritma Penentuan Mode Operasi
+   ## 3.5.3. Algoritma Penentuan Mode Operasi
 
    Algoritma ini menentukan mode operasi perangkat setelah provisioning selesai. Pengecekan dilakukan secara berurutan: **koneksi WiFi** terlebih dahulu, kemudian **kondisi cahaya**. Hasil percabangan mengarahkan sistem ke salah satu dari tiga mode operasi.
 
@@ -219,11 +220,11 @@
       START([Mulai: Sistem Aktif]) --> INIT[Inisialisasi Hardware:  ESP32, Kamera, VL53L5CX]
       INIT --> CEK_WIFI{Cek Koneksi WiFi?}
 
-      CEK_WIFI -- Putus > 5 Detik --> GOTO_OFFLINE([3.5.4:  Mode Offline])
+      CEK_WIFI -- Putus > 5 Detik --> GOTO_OFFLINE([3.5.5:  Mode Offline])
       CEK_WIFI -- Terhubung --> CEK_CAHAYA{Cek Kecerahan?}
 
-      CEK_CAHAYA -- Gelap --> GOTO_GELAP([3.5.4:  Mode Gelap])
-      CEK_CAHAYA -- Terang --> GOTO_SMART([3.5.3:  Mode Smart / AI])
+      CEK_CAHAYA -- Gelap --> GOTO_GELAP([3.5.5:  Mode Gelap])
+      CEK_CAHAYA -- Terang --> GOTO_SMART([3.5.4:  Mode Smart / AI])
 
       %% Styling
       classDef research fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
@@ -240,15 +241,15 @@
    1. **Sistem Aktif** — Setelah provisioning berhasil (atau auto-connect dari NVS), sistem memulai operasi normalnya.
    2. **Inisialisasi Hardware** — ESP32-S3 menginisialisasi semua sensor: kamera OV2640, sensor jarak VL53L5CX, dan mempersiapkan koneksi WebSocket.
    3. **Cek Koneksi WiFi** — Sistem memonitor status koneksi WiFi secara terus-menerus.
-      - **Putus > 5 detik**: Jika WiFi terputus lebih dari 5 detik (bukan hanya jitter sesaat), sistem masuk ke **Mode Offline/Safety** (3.5.4) untuk menjaga keamanan user.
+      - **Putus > 5 detik**: Jika WiFi terputus lebih dari 5 detik (bukan hanya jitter sesaat), sistem masuk ke **Mode Offline/Safety** (3.5.5) untuk menjaga keamanan user.
       - **Terhubung**: Jika WiFi aktif, lanjut ke pengecekan cahaya.
    4. **Cek Kecerahan** — Kamera mengambil frame dan sistem menghitung rata-rata brightness.
-      - **Gelap**: Jika lingkungan terlalu gelap untuk YOLO memproses gambar secara akurat, sistem masuk ke **Mode Gelap** (3.5.4) yang mengandalkan sensor jarak saja.
-      - **Terang**: Kondisi ideal — sistem masuk ke **Mode Smart/AI** (3.5.3) yang memanfaatkan seluruh kemampuan AI.
+      - **Gelap**: Jika lingkungan terlalu gelap untuk YOLO memproses gambar secara akurat, sistem masuk ke **Mode Gelap** (3.5.5) yang mengandalkan sensor jarak saja.
+      - **Terang**: Kondisi ideal — sistem masuk ke **Mode Smart/AI** (3.5.4) yang memanfaatkan seluruh kemampuan AI.
 
    ---
 
-   ## 3.5.3. Algoritma Pemrosesan Cerdas (Smart Mode)
+   ## 3.5.4. Algoritma Pemrosesan Cerdas (Smart Mode)
 
    Mode utama sistem yang memanfaatkan seluruh kemampuan perangkat: kamera + YOLO AI + sensor jarak + accelerometer. Mode ini hanya aktif saat WiFi terhubung DAN kondisi cahaya cukup terang.
 
@@ -336,7 +337,7 @@
       TTS_LUBANG --> SIMPAN
       SILENT --> SIMPAN
       MEDAN_AMAN --> SIMPAN
-      SIMPAN --> KEMBALI([Kembali ke 3.5.2:<br/>Cek WiFi])
+      SIMPAN --> KEMBALI([Kembali ke 3.5.3:<br/>Cek WiFi])
 
       %% Styling
       classDef impl fill:#fff3e0,stroke:#e65100,stroke-width:2px;
@@ -452,7 +453,7 @@
 
       %% Akhir
       TTS_INFO --> SIMPAN((Simpan Data<br/>Frame))
-      SIMPAN --> KEMBALI([Kembali ke 3.5.2:<br/>Cek WiFi])
+      SIMPAN --> KEMBALI([Kembali ke 3.5.3:<br/>Cek WiFi])
 
       %% Styling
       classDef impl fill:#fff3e0,stroke:#e65100,stroke-width:2px;
@@ -475,7 +476,7 @@
       - **Deteksi Medan**: Analisis anomali pola ToF untuk tangga/lubang (Flowchart 3e).
    4. **Simpan Data Frame** — Di akhir siklus, data jarak dan bounding box disimpan untuk perbandingan di frame berikutnya.
 
-   > **Catatan:** Pada Mode Otonom, alur kembali ke node "Simpan Data" dilakukan melalui masing-masing flowchart 3c/3d/3e — setiap jalur memiliki node kembali sendiri yang mengarah ke proses simpan data sebelum kembali ke pengecekan WiFi (3.5.2).
+   > **Catatan:** Pada Mode Otonom, alur kembali ke node "Simpan Data" dilakukan melalui masing-masing flowchart 3c/3d/3e — setiap jalur memiliki node kembali sendiri yang mengarah ke proses simpan data sebelum kembali ke pengecekan WiFi (3.5.3).
 
    ---
 
@@ -623,7 +624,7 @@
 
    ---
 
-   ## 3.5.4. Algoritma Mode Darurat (Fail-Safe)
+   ## 3.5.5. Algoritma Mode Darurat (Fail-Safe)
 
    Algoritma ini mencakup dua mode fallback untuk kondisi non-ideal. Kedua mode disatukan dalam satu flowchart karena sama-sama hanya mengandalkan **sensor jarak VL53L5CX + buzzer** tanpa pemrosesan AI (YOLO tidak aktif).
 
@@ -642,7 +643,7 @@
       BUZZ_ON --> RETRY[Coba Reconnect WiFi]
       BUZZ_OFF --> RETRY
       RETRY --> CEK_ULANG{Reconnect Berhasil?}
-      CEK_ULANG -- Ya --> KEMBALI_UTAMA([Kembali ke 3.5.2:  Cek Kecerahan])
+      CEK_ULANG -- Ya --> KEMBALI_UTAMA([Kembali ke 3.5.3:  Cek Kecerahan])
       CEK_ULANG -- Tidak --> BACA_SENSOR
 
       %% LOGIKA GELAP
@@ -675,7 +676,7 @@
       - **Ya**: Buzzer pada ESP32 dibunyikan sebagai peringatan langsung tanpa melalui smartphone.
       - **Tidak**: Buzzer diam.
    4. **Coba Reconnect** — Setelah setiap siklus baca sensor, ESP32 mencoba menghubungkan ulang WiFi.
-      - **Berhasil**: Kembali ke 3.5.2 (Cek Kecerahan) untuk menentukan mode selanjutnya.
+      - **Berhasil**: Kembali ke 3.5.3 (Cek Kecerahan) untuk menentukan mode selanjutnya.
       - **Gagal**: Kembali ke loop baca sensor dan coba lagi.
 
    **Mode Gelap (Low-Light):**

@@ -1,8 +1,8 @@
-# Formula Matematis — Sistem Navigasi Bantu Tunanetra
+﻿# Formula Matematis — Sistem Navigasi Bantu Tunanetra
 
 Dokumen ini berisi **seluruh formula matematis** yang digunakan dalam sistem navigasi bantu tunanetra. Setiap formula disertai penjelasan **mengapa formula tersebut penting**, **apa arti setiap variabel**, dan **contoh perhitungan** agar mudah dipahami.
 
-Dokumen ini sesuai dengan **sub-bab 3.7 Formulasi Matematis** pada BAB 3 skripsi.
+Dokumen ini sesuai dengan **sub-bab 3.5.1 Formulasi Matematis** pada BAB 3 skripsi.
 
 ---
 
@@ -451,7 +451,7 @@ $$\sigma_{baris} = \sqrt{\frac{1}{N_{col}} \sum_{c=0}^{7} \left(\text{ToF}[r][c]
 
 ## I. Formulasi Mode Darurat (Offline & Gelap)
 
-**Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.4
+**Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.5
 **Referensi:** [sequence-diagram.md](file:///d:/Project/Skripsi/docs/sequence-diagram.md) — SD-4a & SD-4b
 
 ### Mengapa Formula Ini Penting?
@@ -535,7 +535,7 @@ $$\text{Sumber Gerakan} = \begin{cases} \text{User bergerak}, & \text{jika } a_{
 | **F** | $D < 1\text{m} \wedge \neg flag$ | Jarak + flag | Peringatan sekali | Mencegah spam suara saat diam | Flowchart 3c, SD-3a |
 | **G** | $\Delta A = (A_b - A_l) / A_l \times 100\text{\%}$ | BBox area | Peringatan kendaraan | Deteksi kendaraan di luar jangkauan ToF | Flowchart 3d, SD-3b |
 | **H** | $R = \bar{D}_{bawah} / \bar{D}_{tengah}$ | ToF baris 6-7 vs 4-5 | Anomali medan | Deteksi tangga, lubang, parit | Flowchart 3e, SD-3c |
-| **I** | $D_{min} < 1\text{m}$ → Buzzer | ToF semua zona | Buzzer ON/OFF | Keselamatan terakhir tanpa HP | Flowchart 3.5.4, SD-4 |
+| **I** | $D_{min} < 1\text{m}$ → Buzzer | ToF semua zona | Buzzer ON/OFF | Keselamatan terakhir tanpa HP | Flowchart 3.5.5, SD-4 |
 | **J** | $a_{acc}$ vs $\Delta D$ | Accel + jarak | Sumber gerakan | Menentukan cabang mana di Formula E/F | Flowchart 3c, SD-3a |
 
 ### Alur Ketergantungan Antar Formula

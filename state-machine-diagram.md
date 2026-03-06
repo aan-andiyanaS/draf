@@ -1,4 +1,4 @@
-# State Machine Diagram - Sistem Bantu Navigasi Tunanetra
+﻿# State Machine Diagram - Sistem Bantu Navigasi Tunanetra
 
 Dokumen ini menyajikan **State Machine Diagram (Statechart)** yang menggambarkan seluruh **state** (kondisi) yang mungkin dialami sistem dan **transisi** (perpindahan) antar kondisi tersebut beserta *trigger*-nya.
 
@@ -155,7 +155,7 @@ stateDiagram-v2
    - **Cek WiFi**: Prioritas pertama. Jika putus > 5 detik → Offline Mode.
    - **Cek Cahaya**: Prioritas kedua (hanya jika WiFi OK). Gelap → Gelap Mode. Terang → Smart Mode.
 
-> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.1 dan 3.5.2.
+> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.2 dan 3.5.3.
 
 ---
 
@@ -278,7 +278,7 @@ stateDiagram-v2
    - **DeteksiMedan**: Analisis rasio ToF $R = \bar{D}_{bawah} / \bar{D}_{tengah}$ untuk tangga/lubang/penurunan.
 5. **OutputTTS** — Pesan dikirim ke TTS, audio diputar, callback diterima. Mencegah tumpang tindih suara.
 
-> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.3 (Flowchart 3a–3e).
+> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.4 (Flowchart 3a–3e).
 
 ---
 
@@ -351,4 +351,4 @@ stateDiagram-v2
    - **SensorLoopG**: Logika identik dengan Offline Mode (buzzer $D_{min} < 1$ m).
    - **Transisi keluar**: Saat $B_{cam} \ge B_{threshold}$ (cahaya membaik) → kembali ke Mode Selection, potensial masuk Smart Mode.
 
-> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.4.
+> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.5.

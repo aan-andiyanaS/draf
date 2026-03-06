@@ -1,4 +1,4 @@
-# Use Case Diagram — Sistem Bantu Navigasi Tunanetra
+﻿# Use Case Diagram — Sistem Bantu Navigasi Tunanetra
 
 Dokumen ini menyajikan **Use Case Diagram** untuk sistem IoT bantu navigasi tunanetra. Diagram ini menggambarkan **seluruh interaksi** antara aktor-aktor dengan sistem dalam satu diagram terpadu. Sesuai dengan **sub-bab 3.4 Perancangan Use Case** pada BAB 3 skripsi.
 
@@ -172,7 +172,7 @@ Tahap provisioning **hanya dilakukan satu kali** saat pertama kali menggunakan p
   - **UC-3b — Pilih & Kirim Kredensial**: Pendamping memilih SSID dari daftar, memasukkan password, lalu aplikasi mengirim data ini ke ESP32 via BLE
   - **UC-3c — Simpan ke NVS**: Setelah ESP32 berhasil terhubung ke WiFi, kredensial (SSID + password) disimpan secara permanen di Non-Volatile Storage (NVS). Pada penggunaan berikutnya, ESP32 akan **auto-connect** tanpa proses provisioning ulang
 
-> **Referensi:** Detail alur komunikasi provisioning ada di [sequence-diagram.md](file:///d:/Project/Skripsi/docs/sequence-diagram.md) (SD-1) dan [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — Flowchart 3.5.1.
+> **Referensi:** Detail alur komunikasi provisioning ada di [sequence-diagram.md](file:///d:/Project/Skripsi/docs/sequence-diagram.md) (SD-1) dan [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — Flowchart 3.5.2.
 
 ---
 
@@ -284,7 +284,7 @@ Mode sistem **bukan** dipilih oleh user — mode ini ditentukan **secara otomati
 - **Post-condition**: Buzzer diam saat $D_{min} \ge 1$ meter
 - **Catatan**: Buzzer darurat **tidak menggantikan TTS** — buzzer hanya aktif saat TTS tidak tersedia (Mode Offline / Mode Gelap). Di Mode Smart, peringatan tetap melalui TTS yang lebih informatif (arah jam + jarak)
 
-> **Referensi:** Detail transisi mode ada di [state-machine-diagram.md](file:///d:/Project/Skripsi/docs/state-machine-diagram.md) — SM-1 dan SM-4. Detail logika darurat ada di [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — Flowchart 3.5.4.
+> **Referensi:** Detail transisi mode ada di [state-machine-diagram.md](file:///d:/Project/Skripsi/docs/state-machine-diagram.md) — SM-1 dan SM-4. Detail logika darurat ada di [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — Flowchart 3.5.5.
 
 ---
 

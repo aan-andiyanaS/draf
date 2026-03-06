@@ -1,4 +1,4 @@
-# Sequence Diagram - Sistem Kerja Perangkat
+﻿# Sequence Diagram - Sistem Kerja Perangkat
 
 Dokumen ini menyajikan alur kerja perangkat IoT bantu navigasi tunanetra dalam bentuk **sequence diagram**. Fokus utama sequence diagram adalah **komunikasi dan urutan waktu antar aktor**: siapa mengirim data ke siapa, apa isi datanya, dan kapan komunikasi tersebut terjadi.
 
@@ -188,7 +188,7 @@ sequenceDiagram
 3. **App ↔ IoT** (Komunikasi BLE): Koneksi dua arah via BLE digunakan hanya untuk provisioning — scanning perangkat, scanning WiFi, dan pengiriman kredensial. Setelah WiFi terhubung, kanal BLE dapat diputus.
 4. **IoT → IoT** (Internal): Simpan kredensial ke NVS agar auto-connect di sesi berikutnya. Setelah langkah ini, **pendamping tidak lagi dibutuhkan** — sistem beroperasi mandiri.
 
-> **Referensi:** Flowchart provisioning di [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.1.
+> **Referensi:** Flowchart provisioning di [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.2.
 
 ---
 
@@ -251,7 +251,7 @@ sequenceDiagram
 4. **App → AI** (Inferensi Paralel): Aplikasi mengirimkan frame ke YOLO Engine dan memproses matriks ToF secara bersamaan (`par`). Total latency = max(YOLO, ToF), bukan YOLO + ToF.
 5. **App → App** (Mapping Internal): Titik tengah bounding box ($X_c$) dipetakan ke arah jam. Pada resolusi 640×480, area tengah (piksel 80–559) di-cover oleh sensor ToF. Objek di luar area tersebut ($X_c < 80$ atau $X_c \ge 560$) hanya mendapat arah jam tanpa jarak. Kolom ToF dihitung dengan $C_{index} = \lfloor (X_c - 80) / 60 \rfloor$, lalu jarak diambil dari rata-rata baris 3-5 kolom tersebut.
 
-> **Referensi:** Flowchart pemrosesan di [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.3 (Flowchart 3a).
+> **Referensi:** Flowchart pemrosesan di [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.4 (Flowchart 3a).
 
 ---
 
@@ -345,7 +345,7 @@ sequenceDiagram
     end
 
     App->>App: Simpan Data Frame (Jarak + BBox)
-    App->>App: Kembali ke Cek WiFi (3.5.2)
+    App->>App: Kembali ke Cek WiFi (3.5.3)
 ```
 
 Diagram di atas cukup besar. Berikut dipecah menjadi dua bagian:
@@ -407,7 +407,7 @@ sequenceDiagram
    - **User diam + objek diam ($\Delta D = 0$)**: Kedua statis. Jika $D_{objek} < 1$ m, peringatan diberikan **satu kali saja**. Aplikasi menandai objek tersebut agar tidak diulang. Tanda di-reset saat user bergerak atau objek berubah posisi.
 2. **App → TTS → Tunanetra** (Output Suara): Setiap pesan dikirim ke modul TTS Android sebagai string teks. TTS mengkonversi ke audio dan memutarnya. Setelah selesai, TTS mengirim **callback** ke aplikasi — aplikasi menunggu callback ini sebelum mengirim pesan TTS berikutnya, sehingga **tidak terjadi tumpang tindih suara**.
 
-> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.3 (Flowchart 3c).
+> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.4 (Flowchart 3c).
 
 ---
 
@@ -452,7 +452,7 @@ sequenceDiagram
 3. **Transisi ke Jalur A**: Saat objek terus mendekat dan akhirnya masuk jangkauan ToF ($D \le 4$ m), sistem **otomatis beralih** ke Jalur A (SD-3a) yang menggunakan threshold adaptif $T = \min(1 + v \times 2, \ 4)$ dengan data jarak presisi dari ToF.
 4. **App → TTS → Tunanetra**: Pesan peringatan dikirim ke TTS dan callback menunggu sebelum pesan berikutnya — mekanisme anti-tumpang-tindih yang sama seperti SD-3a.
 
-> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.3 (Flowchart 3d).
+> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.4 (Flowchart 3d).
 
 ---
 
@@ -514,7 +514,7 @@ sequenceDiagram
 3. **App → AI** (Request Konfirmasi YOLO): Satu-satunya komunikasi ke YOLO Engine di Jalur C — meminta konfirmasi visual apakah pola gradual tersebut adalah tangga. Ini penting karena ToF saja tidak bisa membedakan tangga dari penurunan tanpa anak tangga.
 4. **Pesan TTS yang Berbeda**: Tangga → info deskriptif (*"Tangga di depan"*). Lubang/penurunan → peringatan bahaya (*"AWAS!"*). Perbedaan ini penting agar user tahu tingkat urgensi.
 
-> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.3 (Flowchart 3e).
+> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.4 (Flowchart 3e).
 
 ---
 
@@ -606,7 +606,7 @@ sequenceDiagram
         alt Reconnect Berhasil
             IoT->>App: Notifikasi via WebSocket: WiFi Pulih
             App->>App: Resume Mode Normal
-            Note over IoT, App: Kembali ke Cek Kecerahan (3.5.2)
+            Note over IoT, App: Kembali ke Cek Kecerahan (3.5.3)
         else Reconnect Gagal
             Note over IoT: WiFi Masih Putus → Ulangi Siklus
         end
@@ -621,7 +621,7 @@ sequenceDiagram
 4. **IoT → IoT** (Internal — Buzzer): Buzzer dibunyikan langsung oleh ESP32 tanpa melalui smartphone. Ini mekanisme **fail-safe terakhir** — output berupa bunyi fisik dari perangkat wearable, bukan TTS dari HP.
 5. **IoT → IoT → App** (Reconnect): ESP32 secara periodik mencoba koneksi WiFi. Saat berhasil, mengirim satu notifikasi ke App via WebSocket, lalu sistem kembali ke mode normal.
 
-> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.4 (Mode Offline).
+> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.5 (Mode Offline).
 
 ---
 
@@ -672,5 +672,5 @@ sequenceDiagram
 3. **Siklus Sensor Identik**: Logika buzzer ($D_{min} < 1$ m) identik dengan Mode Offline. Threshold tetap $T = 1$ meter dengan alasan yang sama: kecepatan pendekatan tidak dapat dihitung tanpa YOLO/accelerometer aktif.
 4. **Transisi Keluar**: Saat kamera mendeteksi brightness di atas threshold, IoT mengirim notifikasi ke App untuk resume streaming → sistem kembali ke Mode Smart dengan YOLO aktif.
 
-> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.4 (Mode Gelap).
+> **Referensi:** [alur-logika.md](file:///d:/Project/Skripsi/docs/alur-logika.md) — sub-bab 3.5.5 (Mode Gelap).
 

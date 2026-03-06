@@ -1,4 +1,4 @@
-# Rencana Pengujian Sistem — Sistem Bantu Navigasi Tunanetra
+﻿# Rencana Pengujian Sistem — Sistem Bantu Navigasi Tunanetra
 
 Dokumen ini menyajikan **rencana pengujian** sistem IoT bantu navigasi tunanetra menggunakan metode **Black Box Testing**. Setiap skenario pengujian didefinisikan berdasarkan fungsionalitas yang dirancang pada BAB 3.
 
@@ -19,14 +19,14 @@ Pengujian yang digunakan pada penelitian ini adalah **Black Box Testing** (*Beha
 
 | No | Kategori Pengujian | Referensi BAB 3 | Jumlah Kasus |
 |---|---|---|---|
-| 1 | Provisioning & Koneksi | sub-bab 3.5.1 | 6 kasus |
-| 2 | Penentuan Mode Sistem | sub-bab 3.5.2 | 5 kasus |
-| 3 | Deteksi & Mapping Objek | sub-bab 3.5.3 (Flowchart 3a) | 8 kasus |
-| 4 | Threshold Adaptif (Jalur A) | sub-bab 3.5.3 (Flowchart 3c) | 7 kasus |
-| 5 | Deteksi Kendaraan Jauh (Jalur B) | sub-bab 3.5.3 (Flowchart 3d) | 4 kasus |
-| 6 | Deteksi Medan (Jalur C) | sub-bab 3.5.3 (Flowchart 3e) | 5 kasus |
-| 7 | Mode Darurat | sub-bab 3.5.4 | 5 kasus |
-| 8 | Antarmuka Pengguna & TTS | sub-bab 3.5.3 | 5 kasus |
+| 1 | Provisioning & Koneksi | sub-bab 3.5.2 | 6 kasus |
+| 2 | Penentuan Mode Sistem | sub-bab 3.5.3 | 5 kasus |
+| 3 | Deteksi & Mapping Objek | sub-bab 3.5.4 (Flowchart 3a) | 8 kasus |
+| 4 | Threshold Adaptif (Jalur A) | sub-bab 3.5.4 (Flowchart 3c) | 7 kasus |
+| 5 | Deteksi Kendaraan Jauh (Jalur B) | sub-bab 3.5.4 (Flowchart 3d) | 4 kasus |
+| 6 | Deteksi Medan (Jalur C) | sub-bab 3.5.4 (Flowchart 3e) | 5 kasus |
+| 7 | Mode Darurat | sub-bab 3.5.5 | 5 kasus |
+| 8 | Antarmuka Pengguna & TTS | sub-bab 3.5.4 | 5 kasus |
 |   | **Total** |  | **45 kasus** |
 
 ---
@@ -35,7 +35,7 @@ Pengujian yang digunakan pada penelitian ini adalah **Black Box Testing** (*Beha
 
 ### 4.2.1 Pengujian Provisioning & Koneksi (P)
 
-Menguji proses setup awal perangkat — dari power ON hingga koneksi WiFi berhasil. Sesuai dengan **Flowchart 3.5.1** dan **SD-1** pada BAB 3.
+Menguji proses setup awal perangkat — dari power ON hingga koneksi WiFi berhasil. Sesuai dengan **Flowchart 3.5.2** dan **SD-1** pada BAB 3.
 
 | ID | Skenario Pengujian | Kondisi Awal | Masukan / Aksi | Keluaran yang Diharapkan | Status |
 |---|---|---|---|---|---|
@@ -50,7 +50,7 @@ Menguji proses setup awal perangkat — dari power ON hingga koneksi WiFi berhas
 
 ### 4.2.2 Pengujian Penentuan Mode Sistem (M)
 
-Menguji logika pemilihan mode otomatis berdasarkan kondisi WiFi dan cahaya. Sesuai dengan **Flowchart 3.5.2** dan **SM-1** pada BAB 3.
+Menguji logika pemilihan mode otomatis berdasarkan kondisi WiFi dan cahaya. Sesuai dengan **Flowchart 3.5.3** dan **SM-1** pada BAB 3.
 
 | ID | Skenario Pengujian | Kondisi Awal | Masukan / Aksi | Keluaran yang Diharapkan | Status |
 |---|---|---|---|---|---|
@@ -124,7 +124,7 @@ Menguji kemampuan sistem mendeteksi perubahan elevasi lantai menggunakan sensor 
 
 ### 4.2.7 Pengujian Mode Darurat (E)
 
-Menguji mekanisme fail-safe saat WiFi putus atau kondisi gelap. Sesuai dengan **Flowchart 3.5.4**, **SD-4a**, **SD-4b**, dan **Formula I** pada BAB 3.
+Menguji mekanisme fail-safe saat WiFi putus atau kondisi gelap. Sesuai dengan **Flowchart 3.5.5**, **SD-4a**, **SD-4b**, dan **Formula I** pada BAB 3.
 
 | ID | Skenario Pengujian | Kondisi Awal | Masukan / Aksi | Keluaran yang Diharapkan | Status |
 |---|---|---|---|---|---|

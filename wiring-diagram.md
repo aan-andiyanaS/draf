@@ -448,3 +448,67 @@ flowchart TB
 | 16 | **TP4056 → MT3608** | OUT+ / OUT- | MT3608 VIN/GND | 🔴/⚫ | Power | Output charging ke input boost converter |
 | 17 | **MT3608 → ESP32** | VOUT | Pin 5V | 🔴 Merah | Power | Output 5V boost → pin 5V board (set via trimpot) |
 | 18 | **MT3608 → ESP32** | GND | GND | ⚫ Hitam | Power | Ground bersama |
+
+### Penjelasan Tabel Wiring
+
+#### No. 1 — Kamera OV2640 (Built-in)
+
+Kamera OV2640 **sudah terpasang langsung** pada board ESP32-S3 WROOM melalui konektor FPC (Flexible Printed Circuit) 24-pin. Tidak ada kabel yang perlu disambung secara manual — cukup pastikan konektor FPC terpasang rapat dan pengunci (latch) sudah dikunci. Kamera ini menggunakan **14 GPIO** untuk jalur data paralel (D0–D7), sinyal kontrol (VSYNC, HREF, PCLK, XCLK), dan komunikasi I2C internal (SIOD/SIOC pada GPIO4/GPIO5). Semua GPIO ini **tidak boleh dipakai** untuk komponen lain.
+
+#### No. 2–7 — Sensor VL53L5CX (Time-of-Flight)
+
+Sensor jarak ToF VL53L5CX berkomunikasi dengan ESP32 melalui protokol **I2C** menggunakan bus I2C **terpisah** dari kamera:
+- **Kamera** menggunakan I2C pada GPIO4 (SDA) dan GPIO5 (SCL)
+- **VL53L5CX** menggunakan I2C pada GPIO1 (SDA) dan GPIO2 (SCL)
+
+Pemisahan bus ini penting agar **tidak terjadi konflik alamat** atau tabrakan data antara kamera dan sensor. Koneksi wajib hanya 4 kabel (VIN, GND, SCL, SDA). Pin **INT** (interrupt) bersifat opsional — jika digunakan, ESP32 bisa membaca data sensor **hanya saat data sudah siap** daripada polling terus-menerus (lebih hemat daya). Pin **LPn** (Low Power enable) juga opsional — digunakan untuk mengaktifkan/menonaktifkan sensor saat mode hemat daya.
+
+#### No. 8–9 — Buzzer Aktif
+
+Buzzer **aktif** 3.3V hanya memerlukan sinyal `HIGH`/`LOW` dari GPIO38 — tidak perlu sinyal PWM frekuensi tertentu. Saat `HIGH`, buzzer langsung berbunyi; saat `LOW`, buzzer diam. Buzzer ini berfungsi sebagai **mekanisme fail-safe terakhir**: di Mode Offline atau Mode Gelap (saat TTS tidak tersedia), buzzer akan berbunyi langsung dari ESP32 jika sensor mendeteksi objek pada jarak $D_{min} < 1$ meter. Jika arus buzzer melebihi batas aman GPIO ESP32 (12mA), diperlukan **transistor NPN** (misalnya 2N2222) sebagai driver — basis transistor dihubungkan ke GPIO38 via resistor 1kΩ, kolektor ke buzzer, emitor ke GND.
+
+#### No. 10–11 — Tombol Multifungsi
+
+Satu tombol push button (tactile switch) yang dipasang di **gagang kacamata** agar mudah dijangkau tunanetra tanpa perlu melihat. Tombol ini menggunakan **pull-up internal** ESP32 (~45kΩ), sehingga **tidak perlu resistor eksternal**. Logika pembacaan:
+- **Tidak ditekan**: GPIO39 = `HIGH` (1) karena pull-up menarik ke 3.3V
+- **Ditekan**: GPIO39 = `LOW` (0) karena terhubung langsung ke GND
+
+Firmware di ESP32 mendeteksi **pola tekanan** berdasarkan durasi dan jumlah penekanan:
+
+| Pola | Durasi | Fungsi |
+|---|---|---|
+| 1× singkat | < 1 detik | Ganti mode Otonom ↔ Tanya Jawab |
+| 2× cepat | 2× dalam 0.5 detik | Trigger tanya (lapor semua objek) |
+| Tekan panjang | 3–5 detik | Matikan perangkat (deep sleep) |
+| Tekan sangat panjang | > 8 detik | Reset WiFi (hapus NVS, reboot ke provisioning) |
+
+Untuk menghindari **bouncing** (getaran mekanis yang membuat satu tekanan terbaca ganda), firmware harus menerapkan debounce dengan delay minimal ~50ms setelah deteksi perubahan state.
+
+#### No. 12–14 — LED Indikator
+
+LED hijau 5mm yang dipasang di **sisi luar frame kacamata** — berfungsi sebagai indikator visual untuk pendamping atau orang di sekitar (bukan untuk tunanetra). LED ini **wajib dipasang seri dengan resistor 220Ω** untuk membatasi arus. Perhitungan:
+
+$$I = \frac{V_{GPIO} - V_{LED}}{R} = \frac{3.3\text{V} - 2.0\text{V}}{220\Omega} \approx 6\text{mA}$$
+
+Nilai 6mA aman untuk GPIO ESP32 (batas maksimum 12mA) dan cukup terang untuk LED standar. Beberapa board ESP32-S3 sudah memiliki **LED built-in** pada GPIO48 — jika boardmu sudah punya, tidak perlu wiring LED eksternal.
+
+Pola kedipan LED menunjukkan status sistem:
+
+| Pola | Status Sistem |
+|---|---|
+| Menyala tetap | Mode Smart aktif (semua fitur berjalan) |
+| Berkedip lambat (1× per 2 detik) | Mode Darurat: Offline atau Gelap |
+| Berkedip cepat (3× per detik) | BLE Provisioning (menunggu koneksi dari app) |
+| 2× kedip + jeda 1 detik | Mode Tanya Jawab aktif |
+| Mati | Perangkat off (deep sleep) |
+
+#### No. 15–18 — Jalur Daya (Li-Po → TP4056 → MT3608 → ESP32)
+
+Jalur daya terdiri dari **tiga tahap** berurutan:
+
+1. **Baterai Li-Po 3.7V 1000mAh** → Sumber daya utama. Kabel merah (B+) dan hitam (B-) terhubung ke modul TP4056
+2. **TP4056** → Modul charging sekaligus proteksi over-discharge/over-charge. Baterai diisi dengan mencolok kabel USB-C ke TP4056 (bukan ke ESP32). Output (OUT+/OUT-) mengeluarkan tegangan baterai (~3.7V) ke tahap berikutnya
+3. **MT3608 Boost Converter** → Menaikkan tegangan dari 3.7V menjadi **5.0V** yang dibutuhkan pin 5V ESP32. **Sebelum dihubungkan ke ESP32**, putar trimpot pada MT3608 sambil mengukur output dengan multimeter hingga tepat 5.0V
+4. **AMS1117 (built-in board)** → Regulator bawaan board yang menurunkan 5V menjadi **3.3V** untuk semua komponen (ESP32, kamera, sensor, LED, buzzer)
+
+> ⚠️ **PENTING**: Jangan hubungkan USB-C ke ESP32 dan MT3608 ke pin 5V secara bersamaan — dua sumber tegangan akan bertabrakan dan berpotensi merusak board. Saat upload kode, lepas dulu kabel MT3608 dari pin 5V.
